@@ -182,3 +182,5 @@ The uploaded CSV files already give us a useful foundation:
 - `data_speaker_profiles.csv`: speaker and board profiles by metro region
 
 See `docs/data-integration.md` for how these map into the app.
+
+## test code
