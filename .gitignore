@@ -1,0 +1,26 @@
+.DS_Store
+*.log
+.env
+.env.*
+firebase-debug.log
+
+# Local tool and IDE state
+.idea/
+*.iml
+
+# Secrets and signing artifacts
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*serviceAccount*.json
+*.mobileprovision
+
+# Android / Flutter local machine config
+local.properties
+
+# Build outputs
+build/
+dist/
+out/

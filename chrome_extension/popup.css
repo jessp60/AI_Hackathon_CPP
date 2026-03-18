@@ -1,0 +1,225 @@
+:root {
+  color-scheme: light;
+  --bg-top: #f4e5c2;
+  --bg-bottom: #e0f0f0;
+  --panel: rgba(255, 255, 255, 0.9);
+  --ink: #184e4a;
+  --muted: #5e6f6d;
+  --accent: #c86f4a;
+  --chip: #f3e2b8;
+  --border: rgba(24, 78, 74, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 380px;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--bg-top), #f7f4ea 42%, var(--bg-bottom));
+}
+
+.app {
+  padding: 18px;
+}
+
+.hero,
+.account,
+.controls,
+.list-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 16px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 25px rgba(24, 78, 74, 0.08);
+}
+
+.controls,
+.list-section {
+  margin-top: 14px;
+}
+
+.account {
+  margin-bottom: 14px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.subcopy,
+.status,
+.meta,
+.empty {
+  color: var(--muted);
+}
+
+.subcopy {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.controls button {
+.account button {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.field-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.text-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: #fff;
+}
+
+.secondary-button {
+  margin-top: 12px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.account-panel.hidden {
+  display: none;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.account-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.account-email {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status {
+  min-height: 20px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--chip);
+}
+
+.event-list {
+  display: grid;
+  gap: 10px;
+}
+
+.event-card {
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 14px;
+}
+
+.event-card h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.meta {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--chip);
+  color: var(--ink);
+}
+
+.empty {
+  padding: 10px 0 2px;
+  font-size: 14px;
+}

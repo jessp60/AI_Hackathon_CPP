@@ -7,6 +7,7 @@ This is the Flutter version of Insight Quest intended to support both Android an
 - `pubspec.yaml`
 - `lib/main.dart`
 - seeded event calendar, cities, and profile screens
+- email/password auth scaffold
 
 ## First-Time Setup
 
@@ -40,3 +41,5 @@ Replace the seeded demo data with:
 - parsed CSV-backed local data
 - Firebase backend data
 - real attendance check-in and location unlock logic
+
+For account sharing, see `/Users/jessicapinto/Documents/GitHub/AI_Hackathon_CPP/docs/firebase-auth-plan.md`.

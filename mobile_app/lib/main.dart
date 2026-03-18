@@ -1,11 +1,188 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const InsightQuestApp());
 }
 
-class InsightQuestApp extends StatelessWidget {
+class InsightQuestApp extends StatefulWidget {
   const InsightQuestApp({super.key});
+
+  @override
+  State<InsightQuestApp> createState() => _InsightQuestAppState();
+}
+
+class _InsightQuestAppState extends State<InsightQuestApp> {
+  final InsightDemoState _state = InsightRepository.demoState();
+  late final Future<void> _firebaseInitialization = _initializeFirebase();
+
+  String? _authError;
+  String? _authMessage;
+  bool _isSubmitting = false;
+
+  Future<void> _initializeFirebase() {
+    return Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
+  Future<void> _signIn({
+    required String email,
+    required String password,
+  }) async {
+    if (email.trim().isEmpty || password.trim().isEmpty) {
+      setState(() {
+        _authError = 'Enter both email and password.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _authError = null;
+      _authMessage = null;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+    } on FirebaseAuthException catch (error) {
+      debugPrint('Firebase sign-in error: code=${error.code}, message=${error.message}');
+      setState(() {
+        _authError = _friendlyAuthError(error);
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  Future<void> _createAccount({
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    if (email.trim().isEmpty || password.trim().isEmpty || confirmPassword.trim().isEmpty) {
+      setState(() {
+        _authError = 'Fill in every field to create your account.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    if (password != confirmPassword) {
+      setState(() {
+        _authError = 'Passwords do not match.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _authError = null;
+      _authMessage = null;
+    });
+
+    try {
+      final UserCredential credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
+      await credential.user?.updateDisplayName(_displayNameFromEmail(email.trim()));
+      await credential.user?.reload();
+      setState(() {
+        _authMessage = 'Account created successfully.';
+      });
+    } on FirebaseAuthException catch (error) {
+      debugPrint('Firebase create-account error: code=${error.code}, message=${error.message}');
+      setState(() {
+        _authError = _friendlyAuthError(error);
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  Future<void> _sendPasswordReset(String email) async {
+    if (email.trim().isEmpty) {
+      setState(() {
+        _authError = 'Enter your email first so we know where to send the reset link.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+      setState(() {
+        _authError = null;
+        _authMessage = 'Password reset email sent to ${email.trim()}.';
+      });
+    } on FirebaseAuthException catch (error) {
+      debugPrint('Firebase password-reset error: code=${error.code}, message=${error.message}');
+      setState(() {
+        _authError = _friendlyAuthError(error);
+        _authMessage = null;
+      });
+    }
+  }
+
+  Future<void> _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    setState(() {
+      _authError = null;
+      _authMessage = null;
+    });
+  }
+
+  String _displayNameFromEmail(String email) {
+    final String prefix = email.split('@').first.trim();
+    final List<String> parts = prefix.split(RegExp(r'[._-]+')).where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) {
+      return 'Insight Student';
+    }
+    return parts
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  String _friendlyAuthError(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'That email address is not valid.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Incorrect email or password.';
+      case 'email-already-in-use':
+        return 'That email already has an account.';
+      case 'weak-password':
+        return 'Use a stronger password with at least 6 characters.';
+      case 'network-request-failed':
+        return 'Network error while contacting Firebase. Check the device connection and try again.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-in is not enabled in Firebase Authentication yet.';
+      default:
+        final String message = error.message ?? 'Authentication failed.';
+        return 'Firebase auth error (${error.code}): $message';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,13 +201,313 @@ class InsightQuestApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFFBF8F1),
         useMaterial3: true,
       ),
-      home: const HomeShell(),
+      home: FutureBuilder<void>(
+        future: _firebaseInitialization,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const LoadingScreen(message: 'Connecting to Firebase...');
+          }
+
+          if (snapshot.hasError) {
+            return ErrorScreen(
+              title: 'Firebase setup incomplete',
+              message: snapshot.error.toString(),
+            );
+          }
+
+          return StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, authSnapshot) {
+              if (authSnapshot.connectionState == ConnectionState.waiting) {
+                return const LoadingScreen(message: 'Checking account session...');
+              }
+
+              final User? user = authSnapshot.data;
+              if (user == null) {
+                return AuthScreen(
+                  isSubmitting: _isSubmitting,
+                  errorMessage: _authError,
+                  infoMessage: _authMessage,
+                  onSignIn: _signIn,
+                  onCreateAccount: _createAccount,
+                  onForgotPassword: _sendPasswordReset,
+                );
+              }
+
+              return HomeShell(
+                state: _state,
+                account: AppAccount.fromFirebaseUser(user),
+                onSignOut: _signOut,
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class LoadingScreen extends StatelessWidget {
+  const LoadingScreen({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(message),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({
+    super.key,
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(message, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({
+    super.key,
+    required this.isSubmitting,
+    required this.errorMessage,
+    required this.infoMessage,
+    required this.onSignIn,
+    required this.onCreateAccount,
+    required this.onForgotPassword,
+  });
+
+  final bool isSubmitting;
+  final String? errorMessage;
+  final String? infoMessage;
+  final Future<void> Function({
+    required String email,
+    required String password,
+  }) onSignIn;
+  final Future<void> Function({
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) onCreateAccount;
+  final Future<void> Function(String email) onForgotPassword;
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  bool _isCreateMode = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() {
+    if (_isCreateMode) {
+      return widget.onCreateAccount(
+        email: _emailController.text,
+        password: _passwordController.text,
+        confirmPassword: _confirmPasswordController.text,
+      );
+    }
+
+    return widget.onSignIn(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF4E5C2),
+              Color(0xFFF7F4EA),
+              Color(0xFFE0F0F0),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Insight Quest',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _isCreateMode
+                              ? 'Create a secure account with email and password.'
+                              : 'Sign in with your email and password to keep your events, badges, city unlocks, and reminders synced.',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Password',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        if (_isCreateMode) ...[
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: _confirmPasswordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Confirm Password',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ],
+                        if (widget.errorMessage != null) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            widget.errorMessage!,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.red.shade700,
+                                ),
+                          ),
+                        ],
+                        if (widget.infoMessage != null) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            widget.infoMessage!,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF184E4A),
+                                ),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+                        FilledButton(
+                          onPressed: widget.isSubmitting ? null : _submit,
+                          child: Text(
+                            widget.isSubmitting
+                                ? 'Please wait...'
+                                : _isCreateMode
+                                    ? 'Create account'
+                                    : 'Sign in',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: widget.isSubmitting
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _isCreateMode = !_isCreateMode;
+                                  });
+                                },
+                          child: Text(
+                            _isCreateMode
+                                ? 'Already have an account? Sign in'
+                                : 'Need an account? Create one',
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: widget.isSubmitting
+                              ? null
+                              : () => widget.onForgotPassword(_emailController.text),
+                          child: const Text('Forgot password?'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({
+    super.key,
+    required this.state,
+    required this.account,
+    required this.onSignOut,
+  });
+
+  final InsightDemoState state;
+  final AppAccount account;
+  final Future<void> Function() onSignOut;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -38,14 +515,17 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
-  final InsightDemoState state = InsightRepository.demoState();
 
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
-      CalendarScreen(state: state),
-      CitiesScreen(state: state),
-      ProfileScreen(state: state),
+      CalendarScreen(state: widget.state, account: widget.account),
+      CitiesScreen(state: widget.state, account: widget.account),
+      ProfileScreen(
+        state: widget.state,
+        account: widget.account,
+        onSignOut: widget.onSignOut,
+      ),
     ];
 
     return Scaffold(
@@ -89,35 +569,34 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class CalendarScreen extends StatelessWidget {
-  const CalendarScreen({super.key, required this.state});
+  const CalendarScreen({
+    super.key,
+    required this.state,
+    required this.account,
+  });
 
   final InsightDemoState state;
+  final AppAccount account;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const HeroCard(
-          eyebrow: 'Insight Association',
-          title: 'Attend events. Level up faster.',
-          body: 'Your next unlock comes from real event participation, not grind.',
+        HeroCard(
+          eyebrow: 'Firebase Auth Connected',
+          title: 'Welcome back, ${account.firstName}.',
+          body: 'Your event history and rewards are now tied to your Firebase account.',
         ),
         const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
-              child: StatCard(
-                label: 'Level',
-                value: '${state.studentLevel}',
-              ),
+              child: StatCard(label: 'Level', value: '${state.studentLevel}'),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: StatCard(
-                label: 'Upcoming',
-                value: '${state.events.length}',
-              ),
+              child: StatCard(label: 'Upcoming', value: '${state.events.length}'),
             ),
           ],
         ),
@@ -132,19 +611,24 @@ class CalendarScreen extends StatelessWidget {
 }
 
 class CitiesScreen extends StatelessWidget {
-  const CitiesScreen({super.key, required this.state});
+  const CitiesScreen({
+    super.key,
+    required this.state,
+    required this.account,
+  });
 
   final InsightDemoState state;
+  final AppAccount account;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const HeroCard(
+        HeroCard(
           eyebrow: 'Travel Map',
           title: 'Unlock metro regions as you go',
-          body: 'City unlocks can come from event check-ins or location-based discovery.',
+          body: '${account.email} is your shared account for city unlocks in the app and extension.',
         ),
         const SizedBox(height: 16),
         for (final region in state.regions) ...[
@@ -157,15 +641,24 @@ class CitiesScreen extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, required this.state});
+  const ProfileScreen({
+    super.key,
+    required this.state,
+    required this.account,
+    required this.onSignOut,
+  });
 
   final InsightDemoState state;
+  final AppAccount account;
+  final Future<void> Function() onSignOut;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        AccountCard(account: account, onSignOut: onSignOut),
+        const SizedBox(height: 16),
         HeroCard(
           eyebrow: 'Student Profile',
           title: state.studentName,
@@ -186,10 +679,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 10),
-                LinearProgressIndicator(
-                  value: state.levelProgress,
-                  minHeight: 10,
-                ),
+                LinearProgressIndicator(value: state.levelProgress, minHeight: 10),
                 const SizedBox(height: 10),
                 Text(
                   '${state.currentXp} XP of ${state.nextLevelXp} XP to the next reward drop',
@@ -198,10 +688,7 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: StatCard(
-                        label: 'Badges',
-                        value: '${state.badges.length}',
-                      ),
+                      child: StatCard(label: 'Badges', value: '${state.badges.length}'),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -240,6 +727,62 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class AccountCard extends StatelessWidget {
+  const AccountCard({
+    super.key,
+    required this.account,
+    required this.onSignOut,
+  });
+
+  final AppAccount account;
+  final Future<void> Function() onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: const Color(0xFF184E4A),
+              foregroundColor: Colors.white,
+              child: Text(account.avatarInitials),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account.fullName,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    account.email,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.black54,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onSignOut,
+              child: const Text('Sign out'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -450,6 +993,51 @@ class RewardChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class AppAccount {
+  const AppAccount({
+    required this.fullName,
+    required this.email,
+    required this.avatarInitials,
+  });
+
+  factory AppAccount.fromFirebaseUser(User user) {
+    final String email = user.email ?? 'unknown@insight.quest';
+    final String fullName = (user.displayName?.trim().isNotEmpty ?? false)
+        ? user.displayName!.trim()
+        : _displayNameFromEmail(email);
+    return AppAccount(
+      fullName: fullName,
+      email: email,
+      avatarInitials: _initialsFromEmail(email, fullName),
+    );
+  }
+
+  static String _displayNameFromEmail(String email) {
+    final String prefix = email.split('@').first.trim();
+    final List<String> parts = prefix.split(RegExp(r'[._-]+')).where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) {
+      return 'Insight Student';
+    }
+    return parts
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  static String _initialsFromEmail(String email, String fullName) {
+    final List<String> parts = fullName.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      return parts.take(2).map((part) => part[0]).join().toUpperCase();
+    }
+    return email.substring(0, email.length.clamp(0, 2)).toUpperCase();
+  }
+
+  String get firstName => fullName.split(' ').first;
+
+  final String fullName;
+  final String email;
+  final String avatarInitials;
 }
 
 class InsightEvent {

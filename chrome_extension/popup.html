@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insight Quest Events</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="account">
+        <div id="account-signed-out" class="account-panel">
+          <p class="eyebrow">Account</p>
+          <h2>Sign in securely</h2>
+          <p class="subcopy">Use the same email and password account as the mobile app so reminders, badges, and event progress stay in sync.</p>
+          <label class="field-label" for="auth-email">Email</label>
+          <input id="auth-email" class="text-input" type="email" autocomplete="username">
+          <label class="field-label" for="auth-password">Password</label>
+          <input id="auth-password" class="text-input" type="password" autocomplete="current-password">
+          <button id="email-sign-in" type="button">Sign in</button>
+          <button id="create-account" type="button" class="secondary-button">Create account</button>
+          <button id="forgot-password" type="button" class="secondary-button">Forgot password?</button>
+        </div>
+
+        <div id="account-signed-in" class="account-panel hidden">
+          <div class="account-row">
+            <div id="account-avatar" class="avatar">IQ</div>
+            <div>
+              <p id="account-name" class="account-name"></p>
+              <p id="account-email" class="account-email"></p>
+            </div>
+          </div>
+          <button id="email-sign-out" type="button" class="secondary-button">Sign out</button>
+        </div>
+      </section>
+
+      <section class="hero">
+        <p class="eyebrow">Insight Association</p>
+        <h1>Today's Events</h1>
+        <p class="subcopy">Quick reminders and regional event highlights from your shared calendar data.</p>
+      </section>
+
+      <section class="controls">
+        <button id="notify-now" type="button">Test Today's Notification</button>
+        <p id="status" class="status"></p>
+      </section>
+
+      <section class="list-section">
+        <div class="section-header">
+          <h2>Today</h2>
+          <span id="today-count" class="pill">0</span>
+        </div>
+        <div id="today-list" class="event-list"></div>
+      </section>
+
+      <section class="list-section">
+        <div class="section-header">
+          <h2>Upcoming</h2>
+        </div>
+        <div id="upcoming-list" class="event-list"></div>
+      </section>
+    </main>
+
+    <script src="events.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="popup.js"></script>
+  </body>
+  </html>
