@@ -91,6 +91,56 @@ const INSIGHT_EVENTS = [
   }
 ];
 
+const INSIGHT_LEADERBOARD = [
+  { email: "jordan.rivera@gmail.com", name: "Jordan Rivera", points: 1280 },
+  { email: "skylar.choi@campus.edu", name: "Skylar Choi", points: 1120 },
+  { email: "marcus.reed@campus.edu", name: "Marcus Reed", points: 980 },
+  { email: "alina.singh@campus.edu", name: "Alina Singh", points: 860 }
+];
+
+const FARM_MILESTONES = [
+  {
+    threshold: 0,
+    tier: "Starter Plot",
+    landLabel: "1 meadow plot",
+    items: ["Seed pouch", "Wood fence", "Welcome sign"],
+    animals: ["Chick"],
+    nextUnlock: "Water trough"
+  },
+  {
+    threshold: 300,
+    tier: "Sprout Farm",
+    landLabel: "2 meadow plots",
+    items: ["Water trough", "Berry patch", "Compost bin"],
+    animals: ["Chicken", "Duck"],
+    nextUnlock: "Windmill"
+  },
+  {
+    threshold: 650,
+    tier: "Harvest Farm",
+    landLabel: "4 meadow plots",
+    items: ["Windmill", "Market cart", "Fruit tree"],
+    animals: ["Goat", "Sheep"],
+    nextUnlock: "Red barn"
+  },
+  {
+    threshold: 1000,
+    tier: "Show Barn",
+    landLabel: "6 meadow plots",
+    items: ["Red barn", "Lantern path", "Irrigation pump"],
+    animals: ["Cow", "Piglet"],
+    nextUnlock: "Golden silo"
+  },
+  {
+    threshold: 1400,
+    tier: "Champion Ranch",
+    landLabel: "8 meadow plots",
+    items: ["Golden silo", "Orchard gate", "Festival pen"],
+    animals: ["Mini horse", "Highland calf"],
+    nextUnlock: "Maxed ranch"
+  }
+];
+
 function getTodayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -106,4 +156,50 @@ function getUpcomingEvents(limit = 4) {
     .filter((event) => event.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
+}
+
+function getLeaderboard() {
+  return [...INSIGHT_LEADERBOARD].sort((a, b) => b.points - a.points);
+}
+
+function getFarmProgress(points) {
+  let current = FARM_MILESTONES[0];
+  let next = null;
+
+  FARM_MILESTONES.forEach((milestone, index) => {
+    if (points >= milestone.threshold) {
+      current = milestone;
+      next = FARM_MILESTONES[index + 1] || null;
+    }
+  });
+
+  const previousThreshold = current.threshold;
+  const nextThreshold = next ? next.threshold : current.threshold;
+  const progress = next
+    ? Math.min(1, (points - previousThreshold) / (nextThreshold - previousThreshold))
+    : 1;
+
+  return {
+    ...current,
+    progress,
+    nextThreshold,
+    pointsToNext: next ? Math.max(0, next.threshold - points) : 0
+  };
+}
+
+function getPlayerProfile(email) {
+  const normalizedEmail = (email || "").toLowerCase();
+  const leaderboard = getLeaderboard();
+  const existing = leaderboard.find((player) => player.email.toLowerCase() === normalizedEmail);
+  const points = existing ? existing.points : 180;
+  const rank = existing ? leaderboard.findIndex((player) => player.email.toLowerCase() === normalizedEmail) + 1 : leaderboard.length + 1;
+  const name = existing ? existing.name : "New Farmer";
+
+  return {
+    email,
+    name,
+    points,
+    rank,
+    farm: getFarmProgress(points)
+  };
 }

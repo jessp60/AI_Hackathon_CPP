@@ -1,35 +1,32 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import 'firebase_options.dart';
 
+const _brandGreen = Color(0xFF0B6E4F);
+const _lightBackground = Color(0xFFF5F7F6);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const InsightQuestApp());
+  runApp(const BroncoBoostApp());
 }
 
-class InsightQuestApp extends StatefulWidget {
-  const InsightQuestApp({super.key});
+class BroncoBoostApp extends StatefulWidget {
+  const BroncoBoostApp({super.key});
 
   @override
-  State<InsightQuestApp> createState() => _InsightQuestAppState();
+  State<BroncoBoostApp> createState() => _BroncoBoostAppState();
 }
 
-class _InsightQuestAppState extends State<InsightQuestApp> {
-  final InsightDemoState _state = InsightRepository.demoState();
-  late final Future<void> _firebaseInitialization = _initializeFirebase();
+class _BroncoBoostAppState extends State<BroncoBoostApp> {
+  late final Future<void> _firebaseInitialization = Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   String? _authError;
   String? _authMessage;
   bool _isSubmitting = false;
-
-  Future<void> _initializeFirebase() {
-    return Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
 
   Future<void> _signIn({
     required String email,
@@ -55,15 +52,15 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
         password: password,
       );
     } on FirebaseAuthException catch (error) {
-      debugPrint('Firebase sign-in error: code=${error.code}, message=${error.message}');
       setState(() {
         _authError = _friendlyAuthError(error);
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -72,7 +69,9 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
     required String password,
     required String confirmPassword,
   }) async {
-    if (email.trim().isEmpty || password.trim().isEmpty || confirmPassword.trim().isEmpty) {
+    if (email.trim().isEmpty ||
+        password.trim().isEmpty ||
+        confirmPassword.trim().isEmpty) {
       setState(() {
         _authError = 'Fill in every field to create your account.';
         _authMessage = null;
@@ -95,33 +94,34 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
     });
 
     try {
-      final UserCredential credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: email.trim(),
-            password: password,
-          );
-      await credential.user?.updateDisplayName(_displayNameFromEmail(email.trim()));
+      final credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      await credential.user
+          ?.updateDisplayName(_displayNameFromEmail(email.trim()));
       await credential.user?.reload();
       setState(() {
         _authMessage = 'Account created successfully.';
       });
     } on FirebaseAuthException catch (error) {
-      debugPrint('Firebase create-account error: code=${error.code}, message=${error.message}');
       setState(() {
         _authError = _friendlyAuthError(error);
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
   Future<void> _sendPasswordReset(String email) async {
     if (email.trim().isEmpty) {
       setState(() {
-        _authError = 'Enter your email first so we know where to send the reset link.';
+        _authError = 'Enter your email first so we can send the reset link.';
         _authMessage = null;
       });
       return;
@@ -130,11 +130,10 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
       setState(() {
-        _authError = null;
         _authMessage = 'Password reset email sent to ${email.trim()}.';
+        _authError = null;
       });
     } on FirebaseAuthException catch (error) {
-      debugPrint('Firebase password-reset error: code=${error.code}, message=${error.message}');
       setState(() {
         _authError = _friendlyAuthError(error);
         _authMessage = null;
@@ -151,17 +150,6 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
     });
   }
 
-  String _displayNameFromEmail(String email) {
-    final String prefix = email.split('@').first.trim();
-    final List<String> parts = prefix.split(RegExp(r'[._-]+')).where((part) => part.isNotEmpty).toList();
-    if (parts.isEmpty) {
-      return 'Insight Student';
-    }
-    return parts
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-        .join(' ');
-  }
-
   String _friendlyAuthError(FirebaseAuthException error) {
     switch (error.code) {
       case 'invalid-email':
@@ -175,41 +163,49 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
       case 'weak-password':
         return 'Use a stronger password with at least 6 characters.';
       case 'network-request-failed':
-        return 'Network error while contacting Firebase. Check the device connection and try again.';
+        return 'Network error while contacting Firebase.';
       case 'operation-not-allowed':
         return 'Email/password sign-in is not enabled in Firebase Authentication yet.';
       default:
-        final String message = error.message ?? 'Authentication failed.';
-        return 'Firebase auth error (${error.code}): $message';
+        return error.message ?? 'Authentication failed.';
     }
+  }
+
+  String _displayNameFromEmail(String email) {
+    final prefix = email.split('@').first.trim();
+    final parts = prefix
+        .split(RegExp(r'[._-]+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'Student';
+    return parts
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Insight Quest',
+      title: 'BroncoBoost',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF184E4A),
-          brightness: Brightness.light,
-        ).copyWith(
-          primary: const Color(0xFF184E4A),
-          secondary: const Color(0xFFC86F4A),
-          surface: Colors.white,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFFBF8F1),
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: _brandGreen),
+        scaffoldBackgroundColor: _lightBackground,
       ),
       home: FutureBuilder<void>(
         future: _firebaseInitialization,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const LoadingScreen(message: 'Connecting to Firebase...');
+            return const AppStateScreen(
+              title: 'BroncoBoost',
+              message: 'Connecting to Firebase...',
+              loading: true,
+            );
           }
 
           if (snapshot.hasError) {
-            return ErrorScreen(
+            return AppStateScreen(
               title: 'Firebase setup incomplete',
               message: snapshot.error.toString(),
             );
@@ -219,10 +215,14 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
             stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, authSnapshot) {
               if (authSnapshot.connectionState == ConnectionState.waiting) {
-                return const LoadingScreen(message: 'Checking account session...');
+                return const AppStateScreen(
+                  title: 'BroncoBoost',
+                  message: 'Checking account session...',
+                  loading: true,
+                );
               }
 
-              final User? user = authSnapshot.data;
+              final user = authSnapshot.data;
               if (user == null) {
                 return AuthScreen(
                   isSubmitting: _isSubmitting,
@@ -234,9 +234,11 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
                 );
               }
 
-              return HomeShell(
-                state: _state,
-                account: AppAccount.fromFirebaseUser(user),
+              final account = AppAccount.fromFirebaseUser(user);
+              final state = SimpleRepository.stateFor(account);
+              return BasicShell(
+                account: account,
+                state: state,
                 onSignOut: _signOut,
               );
             },
@@ -247,37 +249,17 @@ class _InsightQuestAppState extends State<InsightQuestApp> {
   }
 }
 
-class LoadingScreen extends StatelessWidget {
-  const LoadingScreen({super.key, required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(message),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ErrorScreen extends StatelessWidget {
-  const ErrorScreen({
+class AppStateScreen extends StatelessWidget {
+  const AppStateScreen({
     super.key,
     required this.title,
     required this.message,
+    this.loading = false,
   });
 
   final String title;
   final String message;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -288,14 +270,10 @@ class ErrorScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
+              if (loading) const CircularProgressIndicator(),
+              if (loading) const SizedBox(height: 16),
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 8),
               Text(message, textAlign: TextAlign.center),
             ],
           ),
@@ -319,10 +297,8 @@ class AuthScreen extends StatefulWidget {
   final bool isSubmitting;
   final String? errorMessage;
   final String? infoMessage;
-  final Future<void> Function({
-    required String email,
-    required String password,
-  }) onSignIn;
+  final Future<void> Function({required String email, required String password})
+      onSignIn;
   final Future<void> Function({
     required String email,
     required String password,
@@ -335,28 +311,27 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  bool _isCreateMode = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _createMode = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() {
-    if (_isCreateMode) {
+    if (_createMode) {
       return widget.onCreateAccount(
         email: _emailController.text,
         password: _passwordController.text,
-        confirmPassword: _confirmPasswordController.text,
+        confirmPassword: _confirmController.text,
       );
     }
-
     return widget.onSignIn(
       email: _emailController.text,
       password: _passwordController.text,
@@ -366,276 +341,282 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF4E5C2),
-              Color(0xFFF7F4EA),
-              Color(0xFFE0F0F0),
+      appBar: AppBar(title: const Text('BroncoBoost')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _createMode ? 'Create your account' : 'Sign in',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            const Text('Track events, XP, avatar progress, and city unlocks.'),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Password'),
+            ),
+            if (_createMode) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _confirmController,
+                obscureText: true,
+                decoration:
+                    const InputDecoration(labelText: 'Confirm password'),
+              ),
             ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Insight Quest',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          _isCreateMode
-                              ? 'Create a secure account with email and password.'
-                              : 'Sign in with your email and password to keep your events, badges, city unlocks, and reminders synced.',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        if (_isCreateMode) ...[
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: _confirmPasswordController,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Confirm Password',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ],
-                        if (widget.errorMessage != null) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            widget.errorMessage!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.red.shade700,
-                                ),
-                          ),
-                        ],
-                        if (widget.infoMessage != null) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            widget.infoMessage!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF184E4A),
-                                ),
-                          ),
-                        ],
-                        const SizedBox(height: 18),
-                        FilledButton(
-                          onPressed: widget.isSubmitting ? null : _submit,
-                          child: Text(
-                            widget.isSubmitting
-                                ? 'Please wait...'
-                                : _isCreateMode
-                                    ? 'Create account'
-                                    : 'Sign in',
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextButton(
-                          onPressed: widget.isSubmitting
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _isCreateMode = !_isCreateMode;
-                                  });
-                                },
-                          child: Text(
-                            _isCreateMode
-                                ? 'Already have an account? Sign in'
-                                : 'Need an account? Create one',
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: widget.isSubmitting
-                              ? null
-                              : () => widget.onForgotPassword(_emailController.text),
-                          child: const Text('Forgot password?'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            if (widget.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(widget.errorMessage!,
+                  style: const TextStyle(color: Colors.red)),
+            ],
+            if (widget.infoMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(widget.infoMessage!,
+                  style: const TextStyle(color: _brandGreen)),
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: widget.isSubmitting ? null : _submit,
+                child: Text(widget.isSubmitting
+                    ? 'Please wait...'
+                    : _createMode
+                        ? 'Create account'
+                        : 'Sign in'),
               ),
             ),
-          ),
+            TextButton(
+              onPressed: widget.isSubmitting
+                  ? null
+                  : () => setState(() => _createMode = !_createMode),
+              child: Text(_createMode
+                  ? 'Already have an account? Sign in'
+                  : 'Need an account? Create one'),
+            ),
+            TextButton(
+              onPressed: widget.isSubmitting
+                  ? null
+                  : () => widget.onForgotPassword(_emailController.text),
+              child: const Text('Forgot password?'),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class HomeShell extends StatefulWidget {
-  const HomeShell({
+enum BasicTab { home, events, cities, profile }
+
+class BasicShell extends StatefulWidget {
+  const BasicShell({
     super.key,
-    required this.state,
     required this.account,
+    required this.state,
     required this.onSignOut,
   });
 
-  final InsightDemoState state;
   final AppAccount account;
+  final SimpleState state;
   final Future<void> Function() onSignOut;
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  State<BasicShell> createState() => _BasicShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
-  int _selectedIndex = 0;
+class _BasicShellState extends State<BasicShell> {
+  BasicTab _selectedTab = BasicTab.home;
+
+  void _showCheckInDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Check-in demo'),
+        content: const Text(
+            'This basic UI version keeps check-in as a simple demo action.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screens = <Widget>[
-      CalendarScreen(state: widget.state, account: widget.account),
-      CitiesScreen(state: widget.state, account: widget.account),
-      ProfileScreen(
-        state: widget.state,
-        account: widget.account,
-        onSignOut: widget.onSignOut,
-      ),
-    ];
+    final screen = switch (_selectedTab) {
+      BasicTab.home => HomeScreen(
+          account: widget.account,
+          state: widget.state,
+          onCheckIn: _showCheckInDialog,
+        ),
+      BasicTab.events => EventsScreen(events: widget.state.events),
+      BasicTab.cities => CitiesScreen(cities: widget.state.cities),
+      BasicTab.profile => ProfileScreen(
+          account: widget.account,
+          state: widget.state,
+          onSignOut: widget.onSignOut,
+        ),
+    };
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF4E5C2),
-              Color(0xFFF7F4EA),
-              Color(0xFFE0F0F0),
-            ],
-          ),
-        ),
-        child: SafeArea(child: screens[_selectedIndex]),
-      ),
+      appBar: AppBar(title: const Text('BroncoBoost')),
+      body: screen,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (value) => setState(() => _selectedIndex = value),
+        selectedIndex: BasicTab.values.indexOf(_selectedTab),
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedTab = BasicTab.values[index];
+          });
+        },
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note),
-            label: 'Calendar',
-          ),
+              icon: Icon(Icons.event_outlined), label: 'Events'),
           NavigationDestination(
-            icon: Icon(Icons.public_outlined),
-            selectedIcon: Icon(Icons.public),
-            label: 'Cities',
-          ),
+              icon: Icon(Icons.location_city_outlined), label: 'Cities'),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
   }
 }
 
-class CalendarScreen extends StatelessWidget {
-  const CalendarScreen({
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({
     super.key,
-    required this.state,
     required this.account,
+    required this.state,
+    required this.onCheckIn,
   });
 
-  final InsightDemoState state;
   final AppAccount account;
+  final SimpleState state;
+  final VoidCallback onCheckIn;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
-        HeroCard(
-          eyebrow: 'Firebase Auth Connected',
-          title: 'Welcome back, ${account.firstName}.',
-          body: 'Your event history and rewards are now tied to your Firebase account.',
+        Card(
+          child: ListTile(
+            title: Text(account.fullName),
+            subtitle: Text('Rank #${state.rank} at CPP'),
+            trailing: CircleAvatar(child: Text(account.initials)),
+          ),
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(label: 'Level', value: '${state.studentLevel}'),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('XP', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Text('${state.totalXp}',
+                    style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(value: state.levelProgress),
+                const SizedBox(height: 8),
+                Text(
+                    'Level ${state.level} • ${state.currentXpIntoLevel}/${state.xpForNextLevel} XP'),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatCard(label: 'Upcoming', value: '${state.events.length}'),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 16),
-        for (final event in state.events) ...[
-          EventCard(event: event),
-          const SizedBox(height: 16),
-        ],
+        Card(
+          child: ListTile(
+            title: const Text('Avatar / Character Progress'),
+            subtitle: Text(
+                '${state.avatarStage} • ${state.xpToNextStage} XP until next stage'),
+            trailing: const Icon(Icons.pets),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: onCheckIn,
+          icon: const Icon(Icons.qr_code_scanner),
+          label: const Text('Check in to event'),
+        ),
+        const SizedBox(height: 20),
+        Text('Upcoming events', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        ...state.events.map(
+          (event) => Card(
+            child: ListTile(
+              title: Text(event.name),
+              subtitle: Text('${event.dateLabel} • ${event.location}'),
+              trailing: Text('+${event.xpReward} XP'),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class EventsScreen extends StatelessWidget {
+  const EventsScreen({super.key, required this.events});
+
+  final List<EventItem> events;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        final event = events[index];
+        return Card(
+          child: ListTile(
+            title: Text(event.name),
+            subtitle: Text('${event.dateLabel}\n${event.location}'),
+            isThreeLine: true,
+            trailing: Text('+${event.xpReward} XP'),
+          ),
+        );
+      },
     );
   }
 }
 
 class CitiesScreen extends StatelessWidget {
-  const CitiesScreen({
-    super.key,
-    required this.state,
-    required this.account,
-  });
+  const CitiesScreen({super.key, required this.cities});
 
-  final InsightDemoState state;
-  final AppAccount account;
+  final List<CityUnlock> cities;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        HeroCard(
-          eyebrow: 'Travel Map',
-          title: 'Unlock metro regions as you go',
-          body: '${account.email} is your shared account for city unlocks in the app and extension.',
-        ),
-        const SizedBox(height: 16),
-        for (final region in state.regions) ...[
-          RegionCard(region: region),
-          const SizedBox(height: 16),
-        ],
-      ],
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: cities.length,
+      itemBuilder: (context, index) {
+        final city = cities[index];
+        return Card(
+          child: ListTile(
+            leading:
+                Icon(city.unlocked ? Icons.check_circle : Icons.lock_outline),
+            title: Text(city.name),
+            subtitle: Text(
+                city.unlocked ? 'Unlocked' : 'Travel here to unlock this city'),
+          ),
+        );
+      },
     );
   }
 }
@@ -643,582 +624,173 @@ class CitiesScreen extends StatelessWidget {
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
-    required this.state,
     required this.account,
+    required this.state,
     required this.onSignOut,
   });
 
-  final InsightDemoState state;
   final AppAccount account;
+  final SimpleState state;
   final Future<void> Function() onSignOut;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
-        AccountCard(account: account, onSignOut: onSignOut),
-        const SizedBox(height: 16),
-        HeroCard(
-          eyebrow: 'Student Profile',
-          title: state.studentName,
-          body: 'Marketing explorer on a ${state.attendanceStreak}-event streak.',
-        ),
-        const SizedBox(height: 16),
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Level ${state.studentLevel}',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 10),
-                LinearProgressIndicator(value: state.levelProgress, minHeight: 10),
-                const SizedBox(height: 10),
-                Text(
-                  '${state.currentXp} XP of ${state.nextLevelXp} XP to the next reward drop',
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatCard(label: 'Badges', value: '${state.badges.length}'),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatCard(
-                        label: 'Cities',
-                        value: '${state.regions.where((r) => r.isUnlocked).length}',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          child: ListTile(
+            title: Text(account.fullName),
+            subtitle: Text(account.email),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            title: const Text('Total XP'),
+            trailing: Text('${state.totalXp}'),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            title: const Text('Unlocked cities'),
+            trailing:
+                Text('${state.cities.where((city) => city.unlocked).length}'),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            title: const Text('Avatar stage'),
+            trailing: Text(state.avatarStage),
           ),
         ),
         const SizedBox(height: 16),
-        Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Unlocked Badges',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                for (final badge in state.badges) ...[
-                  Text('• $badge'),
-                  const SizedBox(height: 6),
-                ],
-              ],
-            ),
-          ),
+        FilledButton(
+          onPressed: onSignOut,
+          child: const Text('Sign out'),
         ),
       ],
-    );
-  }
-}
-
-class AccountCard extends StatelessWidget {
-  const AccountCard({
-    super.key,
-    required this.account,
-    required this.onSignOut,
-  });
-
-  final AppAccount account;
-  final Future<void> Function() onSignOut;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: const Color(0xFF184E4A),
-              foregroundColor: Colors.white,
-              child: Text(account.avatarInitials),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    account.fullName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    account.email,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.black54,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            TextButton(
-              onPressed: onSignOut,
-              child: const Text('Sign out'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class HeroCard extends StatelessWidget {
-  const HeroCard({
-    super.key,
-    required this.eyebrow,
-    required this.title,
-    required this.body,
-  });
-
-  final String eyebrow;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFFF3E2B8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              eyebrow,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: const Color(0xFF184E4A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(body, style: Theme.of(context).textTheme.bodyLarge),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class StatCard extends StatelessWidget {
-  const StatCard({
-    super.key,
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.black54,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class EventCard extends StatelessWidget {
-  const EventCard({super.key, required this.event});
-
-  final InsightEvent event;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              event.title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${event.date} • ${event.region}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF184E4A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text('Nearby schools: ${event.nearbyUniversities}'),
-            const SizedBox(height: 4),
-            Text(
-              'Course alignment: ${event.courseAlignment}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.black54,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                RewardChip(label: '+${event.rewardXp} XP'),
-                RewardChip(label: '+${event.rewardCoins} coins'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class RegionCard extends StatelessWidget {
-  const RegionCard({super.key, required this.region});
-
-  final RegionProgress region;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: region.isUnlocked ? const Color(0xFFE2F0EC) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              region.name,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              region.isUnlocked
-                  ? 'Unlocked • ${region.badgeName}'
-                  : 'Locked • Visit or attend a local event to unlock',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF184E4A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            Text('Featured speaker: ${region.featuredSpeaker}'),
-            const SizedBox(height: 4),
-            Text(
-              region.regionFlavor,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.black54,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class RewardChip extends StatelessWidget {
-  const RewardChip({super.key, required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3E2B8),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF184E4A),
-              fontWeight: FontWeight.w700,
-            ),
-      ),
     );
   }
 }
 
 class AppAccount {
   const AppAccount({
+    required this.uid,
     required this.fullName,
     required this.email,
-    required this.avatarInitials,
   });
 
-  factory AppAccount.fromFirebaseUser(User user) {
-    final String email = user.email ?? 'unknown@insight.quest';
-    final String fullName = (user.displayName?.trim().isNotEmpty ?? false)
-        ? user.displayName!.trim()
-        : _displayNameFromEmail(email);
-    return AppAccount(
-      fullName: fullName,
-      email: email,
-      avatarInitials: _initialsFromEmail(email, fullName),
-    );
-  }
-
-  static String _displayNameFromEmail(String email) {
-    final String prefix = email.split('@').first.trim();
-    final List<String> parts = prefix.split(RegExp(r'[._-]+')).where((part) => part.isNotEmpty).toList();
-    if (parts.isEmpty) {
-      return 'Insight Student';
-    }
-    return parts
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-        .join(' ');
-  }
-
-  static String _initialsFromEmail(String email, String fullName) {
-    final List<String> parts = fullName.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
-    if (parts.isNotEmpty) {
-      return parts.take(2).map((part) => part[0]).join().toUpperCase();
-    }
-    return email.substring(0, email.length.clamp(0, 2)).toUpperCase();
-  }
-
-  String get firstName => fullName.split(' ').first;
-
+  final String uid;
   final String fullName;
   final String email;
-  final String avatarInitials;
+
+  String get initials {
+    final parts = fullName.split(' ').where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) return 'S';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  factory AppAccount.fromFirebaseUser(User user) {
+    final displayName = user.displayName?.trim();
+    final emailPrefix = user.email?.split('@').first.trim() ?? 'student';
+    return AppAccount(
+      uid: user.uid,
+      fullName: (displayName != null && displayName.isNotEmpty)
+          ? displayName
+          : emailPrefix.replaceAll(RegExp(r'[._-]+'), ' '),
+      email: user.email ?? '',
+    );
+  }
 }
 
-class InsightEvent {
-  const InsightEvent({
-    required this.title,
-    required this.date,
-    required this.region,
-    required this.nearbyUniversities,
-    required this.courseAlignment,
-    required this.rewardXp,
-    required this.rewardCoins,
-  });
-
-  final String title;
-  final String date;
-  final String region;
-  final String nearbyUniversities;
-  final String courseAlignment;
-  final int rewardXp;
-  final int rewardCoins;
-}
-
-class RegionProgress {
-  const RegionProgress({
+class EventItem {
+  const EventItem({
     required this.name,
-    required this.isUnlocked,
-    required this.badgeName,
-    required this.featuredSpeaker,
-    required this.regionFlavor,
+    required this.dateLabel,
+    required this.location,
+    required this.xpReward,
   });
 
   final String name;
-  final bool isUnlocked;
-  final String badgeName;
-  final String featuredSpeaker;
-  final String regionFlavor;
+  final String dateLabel;
+  final String location;
+  final int xpReward;
 }
 
-class InsightDemoState {
-  const InsightDemoState({
-    required this.studentName,
-    required this.studentLevel,
-    required this.currentXp,
-    required this.nextLevelXp,
-    required this.levelProgress,
-    required this.attendanceStreak,
-    required this.badges,
-    required this.events,
-    required this.regions,
+class CityUnlock {
+  const CityUnlock({
+    required this.name,
+    required this.unlocked,
   });
 
-  final String studentName;
-  final int studentLevel;
-  final int currentXp;
-  final int nextLevelXp;
-  final double levelProgress;
-  final int attendanceStreak;
-  final List<String> badges;
-  final List<InsightEvent> events;
-  final List<RegionProgress> regions;
+  final String name;
+  final bool unlocked;
 }
 
-class InsightRepository {
-  static InsightDemoState demoState() {
-    return const InsightDemoState(
-      studentName: 'Jordan Rivera',
-      studentLevel: 4,
-      currentXp: 420,
-      nextLevelXp: 600,
-      levelProgress: 0.70,
-      attendanceStreak: 3,
-      badges: [
-        'First Check-In',
-        'Hackathon Helper',
-        'Traveler: San Diego',
-        'Traveler: Los Angeles',
-      ],
-      events: [
-        InsightEvent(
-          title: 'Insight Portland Student Mixer',
-          date: 'Apr 16, 2026',
-          region: 'Portland',
-          nearbyUniversities: 'Portland State, U of Oregon, Oregon State',
-          courseAlignment: 'Marketing Research, Consumer Behavior',
-          rewardXp: 120,
-          rewardCoins: 35,
+class SimpleState {
+  const SimpleState({
+    required this.rank,
+    required this.level,
+    required this.totalXp,
+    required this.currentXpIntoLevel,
+    required this.xpForNextLevel,
+    required this.avatarStage,
+    required this.xpToNextStage,
+    required this.events,
+    required this.cities,
+  });
+
+  final int rank;
+  final int level;
+  final int totalXp;
+  final int currentXpIntoLevel;
+  final int xpForNextLevel;
+  final String avatarStage;
+  final int xpToNextStage;
+  final List<EventItem> events;
+  final List<CityUnlock> cities;
+
+  double get levelProgress => currentXpIntoLevel / xpForNextLevel;
+}
+
+class SimpleRepository {
+  static SimpleState stateFor(AppAccount account) {
+    final seed =
+        account.uid.codeUnits.fold<int>(0, (sum, value) => sum + value);
+    return SimpleState(
+      rank: 12,
+      level: 4 + (seed % 3),
+      totalXp: 900 + (seed % 500),
+      currentXpIntoLevel: 240 + (seed % 120),
+      xpForNextLevel: 500,
+      avatarStage: 'Rising Bronco',
+      xpToNextStage: 140,
+      events: const [
+        EventItem(
+          name: 'Startup Founder Panel',
+          dateLabel: 'Today, 5:00 PM',
+          location: 'Innovation Village',
+          xpReward: 150,
         ),
-        InsightEvent(
-          title: 'Insight San Diego Analytics Night',
-          date: 'May 14, 2026',
-          region: 'San Diego',
-          nearbyUniversities: 'SDSU, USD, UC San Diego',
-          courseAlignment: 'Analytics capstones, project presentations',
-          rewardXp: 140,
-          rewardCoins: 40,
+        EventItem(
+          name: 'CPP Networking Night',
+          dateLabel: 'Fri, 6:30 PM',
+          location: 'College of Business',
+          xpReward: 120,
         ),
-        InsightEvent(
-          title: 'Insight Los Angeles Summer Launch',
-          date: 'Jun 18, 2026',
-          region: 'Los Angeles',
-          nearbyUniversities: 'UCLA, USC, Cal Poly Pomona, LMU',
-          courseAlignment: 'Summer intensives, boot camps',
-          rewardXp: 180,
-          rewardCoins: 50,
-        ),
-        InsightEvent(
-          title: 'Insight Bay Area Innovation Session',
-          date: 'Jul 23, 2026',
-          region: 'San Francisco',
-          nearbyUniversities: 'USF, SFSU, Berkeley Haas, Santa Clara',
-          courseAlignment: 'Executive education, certificate programs',
-          rewardXp: 160,
-          rewardCoins: 45,
-        ),
-        InsightEvent(
-          title: 'Insight Seattle Welcome Week',
-          date: 'Aug 20, 2026',
-          region: 'Seattle',
-          nearbyUniversities: 'UW Foster, Seattle U, WSU',
-          courseAlignment: 'New student orientations, welcome week',
-          rewardXp: 125,
-          rewardCoins: 35,
+        EventItem(
+          name: 'Hackathon Build Sprint',
+          dateLabel: 'Sat, 10:00 AM',
+          location: 'Library Lab',
+          xpReward: 220,
         ),
       ],
-      regions: [
-        RegionProgress(
-          name: 'Los Angeles',
-          isUnlocked: true,
-          badgeName: 'Metro Connector',
-          featuredSpeaker: 'Donna Flynn',
-          regionFlavor:
-              'A strong hub for research operations, brand storytelling, and student networking.',
-        ),
-        RegionProgress(
-          name: 'San Diego',
-          isUnlocked: true,
-          badgeName: 'Coastal Analyst',
-          featuredSpeaker: 'Monica Voss',
-          regionFlavor:
-              'A city focused on platform insights, client success, and data-driven storytelling.',
-        ),
-        RegionProgress(
-          name: 'Portland',
-          isUnlocked: false,
-          badgeName: 'Northwest Strategist',
-          featuredSpeaker: 'Katie Nelson',
-          regionFlavor:
-              'A region shaped by brand strategy, optimization, and member engagement.',
-        ),
-        RegionProgress(
-          name: 'San Francisco',
-          isUnlocked: false,
-          badgeName: 'Innovation Scout',
-          featuredSpeaker: 'Katrina Noelle',
-          regionFlavor:
-              'A destination for qualitative research, analytics, and insight-led decision making.',
-        ),
-        RegionProgress(
-          name: 'Seattle',
-          isUnlocked: false,
-          badgeName: 'Research Trailblazer',
-          featuredSpeaker: 'Greg Carter',
-          regionFlavor:
-              'A practical research community with strength in focus groups and interviews.',
-        ),
-        RegionProgress(
-          name: 'Ventura / Thousand Oaks',
-          isUnlocked: false,
-          badgeName: 'Community Builder',
-          featuredSpeaker: 'Travis Miller',
-          regionFlavor:
-              'A relationship-driven region blending innovation, sales, and customer experience.',
-        ),
-        RegionProgress(
-          name: 'Orange County / Long Beach',
-          isUnlocked: false,
-          badgeName: 'Signal Seeker',
-          featuredSpeaker: 'Rob Kaiser',
-          regionFlavor:
-              'A creative analytics corridor with room for marketing science and growth.',
-        ),
+      cities: const [
+        CityUnlock(name: 'Pomona', unlocked: true),
+        CityUnlock(name: 'Los Angeles', unlocked: true),
+        CityUnlock(name: 'San Diego', unlocked: false),
+        CityUnlock(name: 'San Francisco', unlocked: false),
       ],
     );
   }

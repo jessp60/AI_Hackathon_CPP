@@ -7,57 +7,129 @@
     <link rel="stylesheet" href="popup.css">
   </head>
   <body>
-    <main class="app">
-      <section class="account">
-        <div id="account-signed-out" class="account-panel">
-          <p class="eyebrow">Account</p>
-          <h2>Sign in securely</h2>
-          <p class="subcopy">Use the same email and password account as the mobile app so reminders, badges, and event progress stay in sync.</p>
-          <label class="field-label" for="auth-email">Email</label>
-          <input id="auth-email" class="text-input" type="email" autocomplete="username">
-          <label class="field-label" for="auth-password">Password</label>
-          <input id="auth-password" class="text-input" type="password" autocomplete="current-password">
-          <button id="email-sign-in" type="button">Sign in</button>
-          <button id="create-account" type="button" class="secondary-button">Create account</button>
-          <button id="forgot-password" type="button" class="secondary-button">Forgot password?</button>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <p class="tiny-label">INSIGHT FARM OS</p>
+          <h1>Trainer Console</h1>
         </div>
+        <div class="top-pill">BOX 3</div>
+      </section>
 
-        <div id="account-signed-in" class="account-panel hidden">
-          <div class="account-row">
-            <div id="account-avatar" class="avatar">IQ</div>
-            <div>
-              <p id="account-name" class="account-name"></p>
-              <p id="account-email" class="account-email"></p>
+      <section class="status-grid">
+        <section class="panel auth-panel">
+          <div id="account-signed-out" class="account-panel">
+            <div class="panel-header">
+              <span>LOGIN</span>
+              <span>SECURE</span>
+            </div>
+            <p class="panel-copy">Sign in to manage your event points and farm inventory.</p>
+            <label class="field-label" for="auth-email">EMAIL</label>
+            <input id="auth-email" class="text-input" type="email" autocomplete="username">
+            <label class="field-label" for="auth-password">PASSWORD</label>
+            <input id="auth-password" class="text-input" type="password" autocomplete="current-password">
+            <div class="button-stack">
+              <button id="email-sign-in" type="button" class="action-button primary">SIGN IN</button>
+              <button id="create-account" type="button" class="action-button">CREATE ACCOUNT</button>
+              <button id="forgot-password" type="button" class="action-button">RESET PASSWORD</button>
             </div>
           </div>
-          <button id="email-sign-out" type="button" class="secondary-button">Sign out</button>
+
+          <div id="account-signed-in" class="account-panel hidden">
+            <div class="panel-header">
+              <span>TRAINER CARD</span>
+              <span>ONLINE</span>
+            </div>
+            <div class="trainer-row">
+              <div id="account-avatar" class="pixel-avatar">IQ</div>
+              <div class="trainer-text">
+                <p id="account-name" class="trainer-name"></p>
+                <p id="account-email" class="trainer-email"></p>
+              </div>
+            </div>
+            <div class="button-stack">
+              <button id="email-sign-out" type="button" class="action-button">SIGN OUT</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel summary-panel">
+          <div class="panel-header">
+            <span>FARM SUMMARY</span>
+            <span id="farm-rank-badge">RANK --</span>
+          </div>
+          <div class="summary-grid">
+            <div>
+              <p class="stat-label">POINTS</p>
+              <p id="farm-points" class="stat-value">0</p>
+            </div>
+            <div>
+              <p class="stat-label">TIER</p>
+              <p id="farm-tier" class="stat-value small">Starter Plot</p>
+            </div>
+            <div>
+              <p class="stat-label">LAND</p>
+              <p id="farm-land" class="stat-value small">1 meadow plot</p>
+            </div>
+            <div>
+              <p class="stat-label">NEXT</p>
+              <p id="farm-next" class="stat-value small">Water trough</p>
+            </div>
+          </div>
+          <div class="progress-shell">
+            <div id="farm-progress" class="progress-fill"></div>
+          </div>
+          <p id="farm-progress-text" class="panel-copy">Earn points to unlock more animals and buildings.</p>
+        </section>
+      </section>
+
+      <section class="panel collection-panel">
+        <div class="panel-header">
+          <span>FARM ITEMS</span>
+          <span id="item-count">0</span>
         </div>
+        <div id="farm-items" class="chip-grid"></div>
       </section>
 
-      <section class="hero">
-        <p class="eyebrow">Insight Association</p>
-        <h1>Today's Events</h1>
-        <p class="subcopy">Quick reminders and regional event highlights from your shared calendar data.</p>
+      <section class="panel collection-panel">
+        <div class="panel-header">
+          <span>ANIMALS</span>
+          <span id="animal-count">0</span>
+        </div>
+        <div id="farm-animals" class="chip-grid"></div>
       </section>
 
-      <section class="controls">
-        <button id="notify-now" type="button">Test Today's Notification</button>
-        <p id="status" class="status"></p>
-      </section>
-
-      <section class="list-section">
-        <div class="section-header">
-          <h2>Today</h2>
-          <span id="today-count" class="pill">0</span>
+      <section class="panel event-panel">
+        <div class="panel-header">
+          <span>TODAY'S EVENTS</span>
+          <span id="today-count">0</span>
         </div>
         <div id="today-list" class="event-list"></div>
       </section>
 
-      <section class="list-section">
-        <div class="section-header">
-          <h2>Upcoming</h2>
+      <section class="panel event-panel">
+        <div class="panel-header">
+          <span>UPCOMING ROUTE</span>
+          <span>CAL</span>
         </div>
         <div id="upcoming-list" class="event-list"></div>
+      </section>
+
+      <section class="panel leaderboard-panel">
+        <div class="panel-header">
+          <span>LEADERBOARD</span>
+          <span>PTS</span>
+        </div>
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+      </section>
+
+      <section class="panel command-panel">
+        <div class="panel-header">
+          <span>COMMAND</span>
+          <span>ALERT</span>
+        </div>
+        <button id="notify-now" type="button" class="action-button primary">SEND TODAY ALERT</button>
+        <p id="status" class="status-line">Notifications idle.</p>
       </section>
     </main>
 

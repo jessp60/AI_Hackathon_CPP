@@ -6,54 +6,6 @@ function formatDate(dateString) {
   });
 }
 
-function createEventCard(event) {
-  const card = document.createElement("article");
-  card.className = "event-card";
-
-  const title = document.createElement("h3");
-  title.textContent = event.title;
-
-  const meta = document.createElement("p");
-  meta.className = "meta";
-  meta.textContent = `${formatDate(event.date)} • ${event.region}`;
-
-  const schools = document.createElement("p");
-  schools.className = "meta";
-  schools.textContent = `Nearby schools: ${event.nearbyUniversities}`;
-
-  const chips = document.createElement("div");
-  chips.className = "chips";
-
-  const xpChip = document.createElement("span");
-  xpChip.className = "chip";
-  xpChip.textContent = `+${event.rewardXp} XP`;
-
-  const coinChip = document.createElement("span");
-  coinChip.className = "chip";
-  coinChip.textContent = `+${event.rewardCoins} coins`;
-
-  chips.append(xpChip, coinChip);
-  card.append(title, meta, schools, chips);
-  return card;
-}
-
-function renderList(containerId, events, emptyMessage) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-
-  if (!events.length) {
-    const empty = document.createElement("p");
-    empty.className = "empty";
-    empty.textContent = emptyMessage;
-    container.appendChild(empty);
-    return;
-  }
-
-  events.forEach((event) => {
-    container.appendChild(createEventCard(event));
-  });
-}
-
 function setStatus(message) {
   document.getElementById("status").textContent = message;
 }
@@ -106,16 +58,121 @@ async function firebaseAuthRequest(url, payload) {
   return data;
 }
 
-function renderAccount(account) {
-  const signedOut = document.getElementById("account-signed-out");
-  const signedIn = document.getElementById("account-signed-in");
+function renderChipList(containerId, values, className, emptyText) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  if (!values.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = emptyText;
+    container.appendChild(empty);
+    return;
+  }
+  values.forEach((value) => {
+    const chip = document.createElement("div");
+    chip.className = className;
+    chip.textContent = value;
+    container.appendChild(chip);
+  });
+}
 
-  if (!account) {
-    signedOut.classList.remove("hidden");
-    signedIn.classList.add("hidden");
+function createEventCard(event) {
+  const card = document.createElement("article");
+  card.className = "event-card";
+
+  const title = document.createElement("h3");
+  title.textContent = event.title;
+
+  const meta = document.createElement("p");
+  meta.className = "meta";
+  meta.textContent = `${formatDate(event.date)} • ${event.region}`;
+
+  const schools = document.createElement("p");
+  schools.className = "meta";
+  schools.textContent = `Nearby schools: ${event.nearbyUniversities}`;
+
+  const footer = document.createElement("div");
+  footer.className = "event-footer";
+
+  const xpChip = document.createElement("span");
+  xpChip.className = "reward-chip";
+  xpChip.textContent = `+${event.rewardXp} PTS`;
+
+  const coinChip = document.createElement("span");
+  coinChip.className = "reward-chip";
+  coinChip.textContent = `+${event.rewardCoins} FARM`;
+
+  footer.append(xpChip, coinChip);
+  card.append(title, meta, schools, footer);
+  return card;
+}
+
+function renderList(containerId, events, emptyMessage) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+
+  if (!events.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = emptyMessage;
+    container.appendChild(empty);
     return;
   }
 
+  events.forEach((event) => {
+    container.appendChild(createEventCard(event));
+  });
+}
+
+function renderLeaderboard(email) {
+  const container = document.getElementById("leaderboard-list");
+  container.innerHTML = "";
+  getLeaderboard().forEach((player, index) => {
+    const row = document.createElement("article");
+    row.className = "leaderboard-row";
+
+    const left = document.createElement("div");
+    left.className = "leader-left";
+
+    const rank = document.createElement("div");
+    rank.className = "leader-rank";
+    rank.textContent = `#${index + 1}`;
+
+    const name = document.createElement("div");
+    name.className = "leader-name";
+    name.textContent = player.name + (player.email === email ? " (YOU)" : "");
+
+    const points = document.createElement("div");
+    points.className = "leader-points";
+    points.textContent = `${player.points} pts`;
+
+    left.append(rank, name);
+    row.append(left, points);
+    container.appendChild(row);
+  });
+}
+
+function renderFarm(profile) {
+  const farm = profile.farm;
+  document.getElementById("farm-rank-badge").textContent = `RANK ${profile.rank}`;
+  document.getElementById("farm-points").textContent = `${profile.points}`;
+  document.getElementById("farm-tier").textContent = farm.tier;
+  document.getElementById("farm-land").textContent = farm.landLabel;
+  document.getElementById("farm-next").textContent = farm.nextUnlock;
+  document.getElementById("farm-progress").style.width = `${Math.round(farm.progress * 100)}%`;
+  document.getElementById("farm-progress-text").textContent = farm.pointsToNext > 0
+    ? `${farm.pointsToNext} pts until ${farm.nextUnlock}.`
+    : "Your ranch is fully upgraded for this demo tier.";
+  document.getElementById("item-count").textContent = String(farm.items.length);
+  document.getElementById("animal-count").textContent = String(farm.animals.length);
+  renderChipList("farm-items", farm.items, "farm-chip", "No farm items unlocked yet.");
+  renderChipList("farm-animals", farm.animals, "farm-chip animal", "No animals unlocked yet.");
+  renderLeaderboard(profile.email);
+}
+
+function renderSignedInAccount(account) {
+  const signedOut = document.getElementById("account-signed-out");
+  const signedIn = document.getElementById("account-signed-in");
   signedOut.classList.add("hidden");
   signedIn.classList.remove("hidden");
   document.getElementById("account-name").textContent = account.fullName;
@@ -123,10 +180,17 @@ function renderAccount(account) {
   document.getElementById("account-avatar").textContent = account.avatarInitials;
 }
 
+function renderSignedOutState() {
+  document.getElementById("account-signed-out").classList.remove("hidden");
+  document.getElementById("account-signed-in").classList.add("hidden");
+  renderFarm(getPlayerProfile(""));
+  renderLeaderboard("");
+}
+
 async function loadAccount() {
   const { appAccountSession } = await chrome.storage.local.get("appAccountSession");
   if (!appAccountSession?.idToken) {
-    renderAccount(null);
+    renderSignedOutState();
     return;
   }
 
@@ -136,12 +200,12 @@ async function loadAccount() {
     });
     const user = lookup.users?.[0];
     if (!user?.email) {
-      renderAccount(null);
+      renderSignedOutState();
       return;
     }
 
     const account = {
-      fullName: user.displayName || "Insight Student",
+      fullName: user.displayName || getPlayerProfile(user.email).name,
       email: user.email,
       avatarInitials: initialsFromEmail(user.email)
     };
@@ -152,10 +216,11 @@ async function loadAccount() {
         displayName: account.fullName
       }
     });
-    renderAccount(account);
+    renderSignedInAccount(account);
+    renderFarm(getPlayerProfile(account.email));
   } catch (error) {
     await chrome.storage.local.remove("appAccountSession");
-    renderAccount(null);
+    renderSignedOutState();
     setStatus(`Session expired. ${friendlyAuthError(error)}`);
   }
 }
@@ -187,22 +252,24 @@ async function signInWithEmail() {
       password,
       returnSecureToken: true
     });
-    const appAccount = {
-      fullName: "Insight Student",
+    const profile = getPlayerProfile(data.email || email);
+    const account = {
+      fullName: profile.name,
       email: data.email || email,
       avatarInitials: initialsFromEmail(data.email || email)
     };
     await chrome.storage.local.set({
       appAccountSession: {
-        email: data.email || email,
+        email: account.email,
         localId: data.localId,
         idToken: data.idToken,
         refreshToken: data.refreshToken,
-        displayName: appAccount.fullName
+        displayName: account.fullName
       }
     });
-    renderAccount(appAccount);
-    setStatus("Signed in with Firebase.");
+    renderSignedInAccount(account);
+    renderFarm(profile);
+    setStatus("Trainer data synced from Firebase.");
   } catch (error) {
     setStatus(friendlyAuthError(error));
   } finally {
@@ -226,22 +293,24 @@ async function createAccount() {
       password,
       returnSecureToken: true
     });
-    const appAccount = {
-      fullName: "Insight Student",
+    const profile = getPlayerProfile(data.email || email);
+    const account = {
+      fullName: profile.name,
       email: data.email || email,
       avatarInitials: initialsFromEmail(data.email || email)
     };
     await chrome.storage.local.set({
       appAccountSession: {
-        email: data.email || email,
+        email: account.email,
         localId: data.localId,
         idToken: data.idToken,
         refreshToken: data.refreshToken,
-        displayName: appAccount.fullName
+        displayName: account.fullName
       }
     });
-    renderAccount(appAccount);
-    setStatus("Firebase account created and signed in.");
+    renderSignedInAccount(account);
+    renderFarm(profile);
+    setStatus("New trainer account created.");
   } catch (error) {
     setStatus(friendlyAuthError(error));
   } finally {
@@ -271,7 +340,7 @@ async function requestPasswordReset() {
 
 async function signOut() {
   await chrome.storage.local.remove("appAccountSession");
-  renderAccount(null);
+  renderSignedOutState();
   setStatus("Signed out.");
 }
 
@@ -286,12 +355,14 @@ async function triggerNotification() {
 
 function initPopup() {
   const todayEvents = getTodayEvents();
-  const upcomingEvents = getUpcomingEvents();
+  const upcomingEvents = getUpcomingEvents(5);
 
-  loadAccount();
   document.getElementById("today-count").textContent = String(todayEvents.length);
   renderList("today-list", todayEvents, "No Insight events are scheduled for today.");
   renderList("upcoming-list", upcomingEvents, "No upcoming events are currently loaded.");
+  renderFarm(getPlayerProfile(""));
+  renderLeaderboard("");
+  loadAccount();
   document.getElementById("email-sign-in").addEventListener("click", signInWithEmail);
   document.getElementById("create-account").addEventListener("click", createAccount);
   document.getElementById("forgot-password").addEventListener("click", requestPasswordReset);
