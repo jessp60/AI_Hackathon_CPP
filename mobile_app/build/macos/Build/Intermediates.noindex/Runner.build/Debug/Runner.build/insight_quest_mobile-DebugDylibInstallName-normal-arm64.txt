@@ -1,0 +1,1 @@
+@rpath/insight_quest_mobile.debug.dylib

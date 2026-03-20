@@ -1,0 +1,100 @@
+{
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Auth/AuthSettings.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthSettings.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthSettings.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthSettings.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthSettings.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthSettings.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Auth/AuthTokenResult.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthTokenResult.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthTokenResult.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthTokenResult.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthTokenResult.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthTokenResult.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Backend/AuthRPCRequest.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCRequest.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCRequest.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCRequest.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCRequest.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCRequest.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Backend/AuthRPCResponse.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCResponse.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCResponse.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCResponse.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCResponse.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRPCResponse.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Backend/AuthRequestConfiguration.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRequestConfiguration.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRequestConfiguration.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRequestConfiguration.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRequestConfiguration.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRequestConfiguration.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Base64URLEncodedStringExtension.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/Base64URLEncodedStringExtension.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/Base64URLEncodedStringExtension.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/Base64URLEncodedStringExtension.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/Base64URLEncodedStringExtension.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/Base64URLEncodedStringExtension.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Storage/AuthUserDefaults.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUserDefaults.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUserDefaults.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUserDefaults.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUserDefaults.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUserDefaults.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/SystemService/AuthStoredUserManager.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthStoredUserManager.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthStoredUserManager.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthStoredUserManager.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthStoredUserManager.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthStoredUserManager.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Utilities/AuthRecaptchaVerifier.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRecaptchaVerifier.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRecaptchaVerifier.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRecaptchaVerifier.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRecaptchaVerifier.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthRecaptchaVerifier.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Utilities/AuthUIDelegate.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUIDelegate.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUIDelegate.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUIDelegate.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUIDelegate.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthUIDelegate.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Utilities/AuthURLPresenter.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthURLPresenter.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthURLPresenter.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthURLPresenter.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthURLPresenter.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthURLPresenter.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Utilities/AuthWebUtils.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebUtils.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebUtils.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebUtils.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebUtils.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebUtils.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Utilities/AuthWebView.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebView.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebView.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebView.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebView.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebView.swiftdeps"
+  },
+  "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/macos/Pods/FirebaseAuth/FirebaseAuth/Sources/Swift/Utilities/AuthWebViewController.swift" : {
+    "const-values" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebViewController.swiftconstvalues",
+    "dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebViewController.d",
+    "diagnostics" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebViewController.dia",
+    "object" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebViewController.o",
+    "swift-dependencies" : "/Users/areen/Desktop/AI_Hackathon_CPP/mobile_app/build/macos/Build/Intermediates.noindex/Pods.build/Debug/FirebaseAuth.build/Objects-normal/arm64/AuthWebViewController.swiftdeps"
+  }
+}
