@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062034930573",
+    "project_id": "cpp-aihackathon",
+    "storage_bucket": "cpp-aihackathon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062034930573:android:475bb386012fd6c634dbc4",
+        "android_client_info": {
+          "package_name": "com.example.insight_quest_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZLcKDWaG6uh71a2iRMX4sil1WPbpDVzw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

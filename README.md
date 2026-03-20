@@ -183,4 +183,28 @@ The uploaded CSV files already give us a useful foundation:
 
 See `docs/data-integration.md` for how these map into the app.
 
-## test code
+## Cross-Platform App
+
+If you want one app for Android and iPhone, use the Flutter starter in `mobile_app/`.
+
+See `mobile_app/README.md` for setup and run steps.
+
+## Chrome Extension
+
+A companion Chrome extension now lives in `chrome_extension/`.
+
+It can:
+
+- show today's Insight events in a popup
+- list upcoming events
+- send same-day browser notifications
+
+See `chrome_extension/README.md` for how to load it in Chrome.
+
+## Authentication
+
+The mobile app and Chrome extension are now scaffolded around simple email/password accounts.
+
+The current sign-in is a local demo flow so the UX is in place before Firebase credentials are added.
+
+See `docs/firebase-auth-plan.md` for the real shared account implementation plan.
