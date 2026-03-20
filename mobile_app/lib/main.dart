@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'firebase_options.dart';
 
@@ -437,6 +440,7 @@ class BasicShell extends StatefulWidget {
 
 class _BasicShellState extends State<BasicShell> {
   BasicTab _selectedTab = BasicTab.home;
+  late AppAccount _account = widget.account;
 
   void _showCheckInDialog() {
     showDialog<void>(
@@ -459,16 +463,21 @@ class _BasicShellState extends State<BasicShell> {
   Widget build(BuildContext context) {
     final screen = switch (_selectedTab) {
       BasicTab.home => HomeScreen(
-          account: widget.account,
+          account: _account,
           state: widget.state,
           onCheckIn: _showCheckInDialog,
         ),
       BasicTab.events => EventsScreen(events: widget.state.events),
       BasicTab.cities => CitiesScreen(cities: widget.state.cities),
       BasicTab.profile => ProfileScreen(
-          account: widget.account,
+          account: _account,
           state: widget.state,
           onSignOut: widget.onSignOut,
+          onAccountChanged: (updatedAccount) {
+            setState(() {
+              _account = updatedAccount;
+            });
+          },
         ),
     };
 
@@ -517,7 +526,7 @@ class HomeScreen extends StatelessWidget {
           child: ListTile(
             title: Text(account.fullName),
             subtitle: Text('Rank #${state.rank} at CPP'),
-            trailing: CircleAvatar(child: Text(account.initials)),
+            trailing: ProfileAvatar(account: account),
           ),
         ),
         Card(
@@ -621,17 +630,122 @@ class CitiesScreen extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
     required this.account,
     required this.state,
     required this.onSignOut,
+    required this.onAccountChanged,
   });
 
   final AppAccount account;
   final SimpleState state;
   final Future<void> Function() onSignOut;
+  final ValueChanged<AppAccount> onAccountChanged;
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _profilePhotoMessage;
+  String? _profilePhotoError;
+  bool _isUpdatingPhoto = false;
+  final ImagePicker _imagePicker = ImagePicker();
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _pickProfilePhoto() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isUpdatingPhoto = true;
+      _profilePhotoError = null;
+      _profilePhotoMessage = null;
+    });
+
+    try {
+      final selectedImage = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+      if (selectedImage == null) {
+        if (!mounted) return;
+        setState(() {
+          _isUpdatingPhoto = false;
+        });
+        return;
+      }
+
+      await user.updatePhotoURL(selectedImage.path);
+      await user.reload();
+      final refreshedUser = FirebaseAuth.instance.currentUser;
+      if (refreshedUser != null) {
+        widget.onAccountChanged(AppAccount.fromFirebaseUser(refreshedUser));
+      }
+      if (!mounted) return;
+      setState(() {
+        _profilePhotoMessage = 'Profile picture updated.';
+      });
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _profilePhotoError = error.message ?? 'Unable to update profile photo.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _profilePhotoError = 'Unable to open your photo library right now.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingPhoto = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isUpdatingPhoto = true;
+      _profilePhotoError = null;
+      _profilePhotoMessage = null;
+    });
+
+    try {
+      await user.updatePhotoURL(null);
+      await user.reload();
+      final refreshedUser = FirebaseAuth.instance.currentUser;
+      if (refreshedUser != null) {
+        widget.onAccountChanged(AppAccount.fromFirebaseUser(refreshedUser));
+      }
+      if (!mounted) return;
+      setState(() {
+        _profilePhotoMessage = 'Profile picture removed.';
+      });
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _profilePhotoError = error.message ?? 'Unable to remove profile photo.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingPhoto = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -639,33 +753,116 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Card(
-          child: ListTile(
-            title: Text(account.fullName),
-            subtitle: Text(account.email),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        ProfileAvatar(
+                          account: widget.account,
+                          radius: 32,
+                        ),
+                        Positioned(
+                          right: -4,
+                          bottom: -4,
+                          child: Material(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: _isUpdatingPhoto ? null : _pickProfilePhoto,
+                              child: const Padding(
+                                padding: EdgeInsets.all(6),
+                                child: Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.account.fullName),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.account.email,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: _isUpdatingPhoto ? null : _pickProfilePhoto,
+                  icon: Icon(
+                    _isUpdatingPhoto ? Icons.hourglass_top : Icons.photo_camera,
+                  ),
+                  label: Text(
+                    _isUpdatingPhoto ? 'Updating profile pic...' : 'Edit profile pic',
+                  ),
+                ),
+                if (_profilePhotoError != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _profilePhotoError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
+                if (_profilePhotoMessage != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _profilePhotoMessage!,
+                    style: const TextStyle(color: _brandGreen),
+                  ),
+                ],
+                if ((widget.account.photoUrl ?? '').isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: _isUpdatingPhoto ? null : _removeProfilePhoto,
+                      child: const Text('Remove profile pic'),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
         Card(
           child: ListTile(
             title: const Text('Total XP'),
-            trailing: Text('${state.totalXp}'),
+            trailing: Text('${widget.state.totalXp}'),
           ),
         ),
         Card(
           child: ListTile(
             title: const Text('Unlocked cities'),
             trailing:
-                Text('${state.cities.where((city) => city.unlocked).length}'),
+                Text('${widget.state.cities.where((city) => city.unlocked).length}'),
           ),
         ),
         Card(
           child: ListTile(
             title: const Text('Avatar stage'),
-            trailing: Text(state.avatarStage),
+            trailing: Text(widget.state.avatarStage),
           ),
         ),
         const SizedBox(height: 16),
         FilledButton(
-          onPressed: onSignOut,
+          onPressed: widget.onSignOut,
           child: const Text('Sign out'),
         ),
       ],
@@ -678,11 +875,13 @@ class AppAccount {
     required this.uid,
     required this.fullName,
     required this.email,
+    this.photoUrl,
   });
 
   final String uid;
   final String fullName;
   final String email;
+  final String? photoUrl;
 
   String get initials {
     final parts = fullName.split(' ').where((part) => part.isNotEmpty).toList();
@@ -700,7 +899,73 @@ class AppAccount {
           ? displayName
           : emailPrefix.replaceAll(RegExp(r'[._-]+'), ' '),
       email: user.email ?? '',
+      photoUrl: user.photoURL?.trim().isEmpty ?? true ? null : user.photoURL,
     );
+  }
+
+  AppAccount copyWith({
+    String? uid,
+    String? fullName,
+    String? email,
+    Object? photoUrl = _noPhotoUrlOverride,
+  }) {
+    return AppAccount(
+      uid: uid ?? this.uid,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      photoUrl: identical(photoUrl, _noPhotoUrlOverride)
+          ? this.photoUrl
+          : photoUrl as String?,
+    );
+  }
+}
+
+const _noPhotoUrlOverride = Object();
+
+class ProfileAvatar extends StatelessWidget {
+  const ProfileAvatar({
+    super.key,
+    required this.account,
+    this.radius = 20,
+  });
+
+  final AppAccount account;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final photoUrl = account.photoUrl?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+    final imageProvider = hasPhoto ? _imageProvider(photoUrl) : null;
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: _brandGreen.withValues(alpha: 0.12),
+      backgroundImage: imageProvider,
+      child: hasPhoto
+          ? null
+          : Text(
+              account.initials,
+              style: TextStyle(
+                color: _brandGreen,
+                fontWeight: FontWeight.w600,
+                fontSize: radius * 0.75,
+              ),
+            ),
+    );
+  }
+
+  ImageProvider? _imageProvider(String photoUrl) {
+    final parsedUri = Uri.tryParse(photoUrl);
+    final isRemote = parsedUri != null &&
+        (parsedUri.scheme == 'http' || parsedUri.scheme == 'https');
+    if (isRemote) {
+      return NetworkImage(photoUrl);
+    }
+    if (photoUrl.isNotEmpty) {
+      return FileImage(File(photoUrl));
+    }
+    return null;
   }
 }
 
