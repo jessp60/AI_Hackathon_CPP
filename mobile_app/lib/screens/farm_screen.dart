@@ -11,399 +11,409 @@ class FarmScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final progress = state.levelProgress.clamp(0.0, 1.0);
-    final stages = [
-      const _EvolutionStage(
-          label: 'Foal',
-          xp: '0 XP',
-          useDotIcon: true,
-          unlocked: true),
-      const _EvolutionStage(
-          label: 'Pony',
-          xp: '500 XP',
-          useDotIcon: true,
-          unlocked: true),
-      const _EvolutionStage(
-        label: 'Young\nHorse',
-        xp: '1500 XP',
-        useDotIcon: true,
-        unlocked: true,
-        active: true,
-      ),
-      const _EvolutionStage(
-          label: 'Adult\nHorse', xp: '3000 XP', stepNumber: 4),
-      const _EvolutionStage(label: 'Champion', xp: '5000 XP', stepNumber: 5),
-    ];
-    final cosmetics = [
-      const _CosmeticItem(
-        icon: Icons.apps_rounded,
-        name: 'Golden\nSaddle',
-        type: 'Saddle',
-        footer: 'Owned',
-        owned: true,
-      ),
-      const _CosmeticItem(
-        icon: Icons.apps_rounded,
-        name: 'Racing\nStripes',
-        type: 'Pattern',
-        footer: 'Owned',
-        owned: true,
-      ),
-      const _CosmeticItem(
-        icon: Icons.apps_rounded,
-        name: 'Champion\nCrown',
-        type: 'Accessory',
-        footer: '5000',
-      ),
-      const _CosmeticItem(
-        icon: Icons.apps_rounded,
-        name: 'Rainbow\nMane',
-        type: 'Color',
-        footer: '4000',
-      ),
-      const _CosmeticItem(
-        icon: Icons.apps_rounded,
-        name: 'Diamond\nShoes',
-        type: 'Shoes',
-        footer: '6000',
-      ),
-      const _CosmeticItem(
-        icon: Icons.apps_rounded,
-        name: 'Wings',
-        type: 'Special',
-        footer: '10000',
-      ),
+    final accessories = state.unlockedAccessories;
+    final upcomingStageNames = [
+      'Tiny Pony',
+      'Pony',
+      'Young Bronco',
+      'Adult Bronco',
+      'Champion Bronco',
     ];
 
     return ListView(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
       children: [
-        // Top hero field with horse summary chips and the exploring callout.
-        SizedBox(
-          height: 800,
-          child: Stack(
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFBEDFBD),
+                Color(0xFF95BC78),
+                Color(0xFF759C57),
+              ],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x16000000),
+                blurRadius: 18,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
             children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _TopInfoCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Thunder',
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Lv. ${state.farmStageNumber} • ${state.farmStageTitle}',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: appTextMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _TopInfoCard(
+                    width: 148,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'XP',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: appTextMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${state.totalXp}/${state.xpForNextFarmStage}',
+                          style: textTheme.headlineMedium?.copyWith(
+                            color: brandAccentDark,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
               Container(
-                height: 720,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
+                height: 270,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: const LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFFB8D7BF), Color(0xFF8CB28A), Color(0xFF6A8B5A)],
+                    colors: [Color(0x99FFFFFF), Color(0x3365A05A)],
                   ),
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        height: 210,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x99FFFFFF), Color(0x00FFFFFF)],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: -20,
-                      right: -20,
-                      bottom: 180,
-                      child: Container(
-                        height: 180,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x661D5138), Color(0x001D5138)],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 28,
-                      right: 28,
-                      top: 24,
-                      child: Row(
+                    Positioned.fill(
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: _TopInfoCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Thunder',
-                                    style: textTheme.displaySmall?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Lv. ${state.level - 1} • Young Horse',
-                                    style: textTheme.headlineSmall?.copyWith(
-                                      color: appTextMuted,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
+                          const Spacer(),
+                          Container(
+                            height: 90,
+                            decoration: const BoxDecoration(
+                              color: Color(0x66407F43),
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(28),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          _TopInfoCard(
-                            width: 180,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'XP',
-                                  style: textTheme.headlineSmall?.copyWith(
-                                    color: appTextMuted,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  '${state.totalXp}/${state.totalXp + state.xpToNextStage}',
-                                  style: textTheme.displaySmall?.copyWith(
-                                    color: brandAccentDark,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 20,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
                     Positioned(
-                      right: 96,
-                      bottom: 250,
-                      child: Text(
-                        '🐎',
-                        style: textTheme.displayMedium?.copyWith(fontSize: 54),
+                      left: 20,
+                      top: 20,
+                      child: _FarmStatusPill(
+                        icon: Icons.pets_outlined,
+                        label: '${state.unlockedHorseCount} horses',
+                      ),
+                    ),
+                    Positioned(
+                      right: 20,
+                      top: 20,
+                      child: _FarmStatusPill(
+                        icon: Icons.auto_awesome_outlined,
+                        label: '${accessories.length} accessories',
                       ),
                     ),
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 112,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 26,
-                            vertical: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            color: appSurface,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0xFFD9E0D8), width: 4),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.info_outline_rounded,
-                                color: brandAccentDark,
+                      top: 72,
+                      child: Column(
+                        children: [
+                          const _BroncoSprite(size: 88),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: List.generate(
+                              state.unlockedHorseCount - 1,
+                              (index) => const Opacity(
+                                opacity: 0.85,
+                                child: _BroncoSprite(size: 40),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Your horse is exploring\nthe farm!',
-                                style: textTheme.headlineSmall?.copyWith(
-                                  color: const Color(0xFF37465D),
-                                  height: 1.2,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                     Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 80,
+                      left: 20,
+                      right: 20,
+                      bottom: 0,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(
-                          18,
+                          12,
                           (index) => Container(
-                            width: 12,
-                            height: 42 + (index % 3) * 8,
+                            width: 9,
+                            height: 30 + (index % 3) * 8,
                             decoration: BoxDecoration(
-                              color: const Color(0x33428745),
+                              color: const Color(0x4D2D7332),
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
                         ),
                       ),
                     ),
+                    Positioned(
+                      left: 30,
+                      right: 30,
+                      bottom: 22,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: appSurface,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: const Color(0xFFD8E0D5),
+                            width: 3,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: brandAccentDark,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                accessories.isEmpty
+                                    ? 'Your tiny bronco is just getting started on the farm.'
+                                    : 'Thunder is stronger now and showing off new gear.',
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: const Color(0xFF37465D),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Positioned(
-                left: 22,
-                right: 22,
-                bottom: 0,
-                child: _PanelCard(
-                  padding: const EdgeInsets.fromLTRB(22, 24, 22, 26),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Evolution Progress',
-                                  style: textTheme.displaySmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 20,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Keep earning XP to evolve!',
-                                  style: textTheme.headlineSmall?.copyWith(
-                                    color: appTextMuted,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Next Evolution: Adult\nHorse',
-                              style: textTheme.headlineSmall?.copyWith(
-                                color: appTextMuted,
-                                height: 1.25,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${state.totalXp} / ${state.totalXp + state.xpToNextStage}\nXP',
-                            style: textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              height: 1.25,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 18,
-                          backgroundColor: const Color(0xFFE1E3EA),
-                          valueColor:
-                              const AlwaysStoppedAnimation<Color>(brandAccent),
-                        ),
-                      ),
-                      const SizedBox(height: 26),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: stages
-                            .map((stage) => Expanded(child: _StagePill(stage: stage)))
-                            .toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 18),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
+        _PanelCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.palette_outlined,
-                color: brandAccentDark,
-                size: 34,
-              ),
-              const SizedBox(width: 12),
               Text(
-                'Cosmetics & Upgrades',
-                style: textTheme.displaySmall?.copyWith(
+                'Farm Evolution',
+                style: textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  fontSize: 20,
                 ),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: GridView.builder(
-            itemCount: cosmetics.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              mainAxisExtent: 228,
-            ),
-            itemBuilder: (context, index) {
-              return _CosmeticCard(item: cosmetics[index]);
-            },
-          ),
-        ),
-        const SizedBox(height: 18),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
-          child: Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: const Color(0xFFECEEE8),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: const Color(0xFFE3D4BC)),
-            ),
-            child: Text.rich(
-              TextSpan(
+              const SizedBox(height: 8),
+              Text(
+                'As your points rise, Thunder grows into a stronger bronco, unlocks more gear, and brings more horses to the farm.',
+                style: textTheme.bodyLarge?.copyWith(
+                  color: appTextMuted,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextSpan(
-                    text: 'Evolution Tip: ',
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 20,
+                  Expanded(
+                    child: Text(
+                      'Next Evolution: ${state.nextFarmStageTitle}',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: appTextMuted,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
                     ),
                   ),
-                  TextSpan(
-                    text:
-                        'Your horse evolves at levels 1, 2, 3, 4, and 5! Each evolution makes it stronger and unlocks new cosmetics.',
-                    style: textTheme.headlineSmall?.copyWith(
-                      color: const Color(0xFF3E4A60),
-                      height: 1.35,
-                      fontSize: 14,
+                  Container(
+                    height: 74,
+                    width: 74,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [brandAccentDark, softGold],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 34,
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 18),
+              Text(
+                '${state.totalXp} / ${state.xpForNextFarmStage} XP',
+                style: textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: state.farmProgress.clamp(0.0, 1.0),
+                  minHeight: 16,
+                  backgroundColor: const Color(0xFFE1E3EA),
+                  valueColor: const AlwaysStoppedAnimation<Color>(brandAccent),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(
+                  upcomingStageNames.length,
+                  (index) => Expanded(
+                    child: _StagePill(
+                      label: upcomingStageNames[index],
+                      xpLabel: const ['0 XP', '500 XP', '1500 XP', '3000 XP', '5000 XP'][index],
+                      active: state.farmStageNumber == index + 1,
+                      unlocked: state.farmStageNumber > index + 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        _PanelCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Unlocked Accessories',
+                style: textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (accessories.isEmpty)
+                Text(
+                  'Earn your first 250 XP to unlock a bandana for Thunder.',
+                  style: textTheme.bodyLarge?.copyWith(color: appTextMuted),
+                )
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: accessories
+                      .map(
+                        (item) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: softBlush,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            item,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: brandAccentDark,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        _PanelCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Farm Friends',
+                style: textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                state.unlockedHorseCount == 1
+                    ? 'Keep earning points to add more broncos to your farm.'
+                    : 'Your higher point total has already attracted more broncos to the farm.',
+                style: textTheme.bodyLarge?.copyWith(
+                  color: appTextMuted,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: List.generate(
+                  state.unlockedHorseCount,
+                  (index) => Container(
+                    width: 96,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: softBlush,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Column(
+                      children: [
+                        const _BroncoSprite(size: 42),
+                        const SizedBox(height: 8),
+                        Text(
+                          index == 0 ? 'Thunder' : 'Bronco ${index + 1}',
+                          textAlign: TextAlign.center,
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -463,104 +473,68 @@ class _PanelCard extends StatelessWidget {
   }
 }
 
-class _EvolutionStage {
-  const _EvolutionStage({
+class _StagePill extends StatelessWidget {
+  const _StagePill({
     required this.label,
-    required this.xp,
-    this.useDotIcon = false,
-    this.stepNumber,
-    this.unlocked = false,
-    this.active = false,
+    required this.xpLabel,
+    required this.active,
+    required this.unlocked,
   });
 
   final String label;
-  final String xp;
-  final bool useDotIcon;
-  final int? stepNumber;
-  final bool unlocked;
+  final String xpLabel;
   final bool active;
-}
-
-class _StagePill extends StatelessWidget {
-  const _StagePill({required this.stage});
-
-  final _EvolutionStage stage;
+  final bool unlocked;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final circleColor = stage.active
+    final circleColor = active
         ? brandAccent
-        : stage.unlocked
+        : unlocked
             ? softGold
             : Colors.white;
-    final borderColor = stage.unlocked || stage.active
+    final borderColor = unlocked || active
         ? Colors.transparent
         : const Color(0xFFD0D5DF);
 
     return Column(
       children: [
         Container(
-          height: 94,
-          width: 94,
+          height: 62,
+          width: 62,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: circleColor,
-            border: Border.all(color: borderColor, width: 4),
+            border: Border.all(color: borderColor, width: 3),
           ),
           alignment: Alignment.center,
-          child: stage.useDotIcon
-              ? Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: stage.active
-                        ? Colors.white
-                        : stage.unlocked
-                            ? appText
-                            : const Color(0xFF8A92A2),
-                    shape: BoxShape.circle,
-                  ),
-                )
-              : Text(
-                  '${stage.stepNumber}',
-                  textAlign: TextAlign.center,
-                  style: textTheme.headlineMedium?.copyWith(
-                    color: const Color(0xFF8A92A2),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                  ),
-                ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              stage.label,
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: textTheme.headlineSmall?.copyWith(
-                color: stage.active
-                    ? brandAccentDark
-                    : stage.unlocked
-                        ? softGold
-                        : const Color(0xFF9098A8),
-                fontWeight: FontWeight.w700,
-                height: 1.2,
-                fontSize: 14,
-              ),
-            ),
+          child: Icon(
+            active || unlocked ? Icons.pets : Icons.lock_outline,
+            color: active
+                ? Colors.white
+                : unlocked
+                    ? appText
+                    : const Color(0xFF9DA4B4),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 10),
         Text(
-          stage.xp,
+          label,
           textAlign: TextAlign.center,
-          style: textTheme.titleLarge?.copyWith(
-            color: const Color(0xFF657084),
-            fontSize: 14,
+          style: textTheme.bodyMedium?.copyWith(
+            color: active ? brandAccentDark : appTextMuted,
+            fontWeight: active ? FontWeight.w800 : FontWeight.w700,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          xpLabel,
+          textAlign: TextAlign.center,
+          style: textTheme.bodySmall?.copyWith(
+            color: active ? brandAccentDark : appTextMuted,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
       ],
@@ -568,133 +542,68 @@ class _StagePill extends StatelessWidget {
   }
 }
 
-class _CosmeticItem {
-  const _CosmeticItem({
+class _FarmStatusPill extends StatelessWidget {
+  const _FarmStatusPill({
     required this.icon,
-    required this.name,
-    required this.type,
-    required this.footer,
-    this.owned = false,
+    required this.label,
   });
 
   final IconData icon;
-  final String name;
-  final String type;
-  final String footer;
-  final bool owned;
-}
-
-class _CosmeticCard extends StatelessWidget {
-  const _CosmeticCard({required this.item});
-
-  final _CosmeticItem item;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: appSurface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: item.owned ? brandAccent : const Color(0xFFDDE0E8),
-          width: item.owned ? 2.5 : 1.5,
-        ),
-        boxShadow: item.owned
-            ? const [
-                BoxShadow(
-                  color: Color(0x12000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : null,
+        color: appSurface.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            item.icon,
-            size: 34,
-            color: item.owned ? appText : const Color(0xFF697387),
+          Icon(icon, size: 18, color: brandAccentDark),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: brandAccentDark,
+                ),
           ),
-          const SizedBox(height: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                item.name,
-                textAlign: TextAlign.center,
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: item.owned ? appText : const Color(0xFF697387),
-                  fontSize: 13,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                item.type,
-                style: textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFF697387),
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          item.owned
-              ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: softBlush,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.workspace_premium_outlined,
-                          size: 14,
-                          color: brandAccentDark,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          item.footer,
-                          style: textTheme.titleMedium?.copyWith(
-                            color: brandAccentDark,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.star_border_rounded,
-                      color: Color(0xFF4E5A71),
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      item.footer,
-                      style: textTheme.titleLarge?.copyWith(
-                        color: const Color(0xFF4E5A71),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
         ],
+      ),
+    );
+  }
+}
+
+class _BroncoSprite extends StatelessWidget {
+  const _BroncoSprite({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Image.asset(
+        '../Asset Pack/Sprites/bzdig ci.png',
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Icon(
+          Icons.pets_rounded,
+          size: size,
+          color: brandAccentDark,
+        ),
       ),
     );
   }

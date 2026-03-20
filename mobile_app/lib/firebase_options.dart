@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -65,4 +62,15 @@ class DefaultFirebaseOptions {
     storageBucket: 'cpp-aihackathon.firebasestorage.app',
     iosBundleId: 'com.example.insightQuestMobile',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCP3HwYl0QUWr0-h63hlIrDe4EALxg5Brs',
+    appId: '1:1062034930573:web:913ed2f6ae1a828f34dbc4',
+    messagingSenderId: '1062034930573',
+    projectId: 'cpp-aihackathon',
+    authDomain: 'cpp-aihackathon.firebaseapp.com',
+    storageBucket: 'cpp-aihackathon.firebasestorage.app',
+    measurementId: 'G-R9CGS3SVSV',
+  );
+
 }

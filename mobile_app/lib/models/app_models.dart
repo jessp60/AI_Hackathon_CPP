@@ -100,20 +100,83 @@ class SimpleState {
   final List<CityUnlock> cities;
 
   double get levelProgress => currentXpIntoLevel / xpForNextLevel;
+
+  String get farmStageTitle {
+    if (totalXp >= 5000) return 'Champion Bronco';
+    if (totalXp >= 3000) return 'Adult Bronco';
+    if (totalXp >= 1500) return 'Young Bronco';
+    if (totalXp >= 500) return 'Pony';
+    return 'Tiny Pony';
+  }
+
+  int get farmStageNumber {
+    if (totalXp >= 5000) return 5;
+    if (totalXp >= 3000) return 4;
+    if (totalXp >= 1500) return 3;
+    if (totalXp >= 500) return 2;
+    return 1;
+  }
+
+  List<String> get unlockedAccessories {
+    final accessories = <String>[];
+    if (totalXp >= 250) accessories.add('Bandana');
+    if (totalXp >= 700) accessories.add('Trail Saddle');
+    if (totalXp >= 1400) accessories.add('Bronco Ribbon');
+    if (totalXp >= 2200) accessories.add('Lucky Horseshoes');
+    if (totalXp >= 3200) accessories.add('Champion Blanket');
+    if (totalXp >= 4500) accessories.add('Gold Bridle');
+    return accessories;
+  }
+
+  int get unlockedHorseCount {
+    if (totalXp >= 4800) return 4;
+    if (totalXp >= 3200) return 3;
+    if (totalXp >= 1800) return 2;
+    return 1;
+  }
+
+  int get xpForNextFarmStage {
+    if (farmStageNumber == 1) return 500;
+    if (farmStageNumber == 2) return 1500;
+    if (farmStageNumber == 3) return 3000;
+    if (farmStageNumber == 4) return 5000;
+    return 7000;
+  }
+
+  String get nextFarmStageTitle {
+    if (farmStageNumber == 1) return 'Pony';
+    if (farmStageNumber == 2) return 'Young Bronco';
+    if (farmStageNumber == 3) return 'Adult Bronco';
+    if (farmStageNumber == 4) return 'Champion Bronco';
+    return 'Champion Bronco';
+  }
+
+  double get farmProgress {
+    final current = totalXp.clamp(0, xpForNextFarmStage);
+    return current / xpForNextFarmStage;
+  }
 }
 
 class SimpleRepository {
   static SimpleState stateFor(AppAccount account) {
-    final seed =
-        account.uid.codeUnits.fold<int>(0, (sum, value) => sum + value);
+    final normalizedIdentity =
+        account.email.trim().toLowerCase().isNotEmpty
+            ? account.email.trim().toLowerCase()
+            : account.uid;
+    final seed = _stableHash(normalizedIdentity);
+    final totalXp = 900 + (seed % 4200);
+    final currentXpIntoLevel = totalXp % 500;
+    const xpForNextLevel = 500;
+    final level = (totalXp ~/ xpForNextLevel) + 1;
+    final xpToNextStage = _nextFarmThreshold(totalXp) - totalXp;
     return SimpleState(
-      rank: 12,
-      level: 4 + (seed % 3),
-      totalXp: 900 + (seed % 500),
-      currentXpIntoLevel: 240 + (seed % 120),
-      xpForNextLevel: 500,
-      avatarStage: 'Rising Bronco',
-      xpToNextStage: 140,
+      rank: 5 + (seed % 40),
+      level: level,
+      totalXp: totalXp,
+      currentXpIntoLevel: currentXpIntoLevel,
+      xpForNextLevel: xpForNextLevel,
+      avatarStage: _farmStageTitleForXp(totalXp),
+      xpToNextStage: xpToNextStage,
       events: const [
         EventItem(
           name: 'Startup Founder Panel',
@@ -142,4 +205,28 @@ class SimpleRepository {
       ],
     );
   }
+}
+
+int _stableHash(String value) {
+  var hash = 0;
+  for (final codeUnit in value.codeUnits) {
+    hash = (hash * 31 + codeUnit) & 0x7fffffff;
+  }
+  return hash;
+}
+
+int _nextFarmThreshold(int totalXp) {
+  if (totalXp < 500) return 500;
+  if (totalXp < 1500) return 1500;
+  if (totalXp < 3000) return 3000;
+  if (totalXp < 5000) return 5000;
+  return 7000;
+}
+
+String _farmStageTitleForXp(int totalXp) {
+  if (totalXp >= 5000) return 'Champion Bronco';
+  if (totalXp >= 3000) return 'Adult Bronco';
+  if (totalXp >= 1500) return 'Young Bronco';
+  if (totalXp >= 500) return 'Pony';
+  return 'Tiny Pony';
 }

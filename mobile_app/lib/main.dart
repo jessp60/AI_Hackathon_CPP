@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'models/app_models.dart';
 import 'screens/badges_screen.dart';
+import 'screens/campus_hub_screen.dart';
 import 'screens/farm_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/qr_screen.dart';
 import 'theme_constants.dart';
@@ -515,7 +515,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-enum BasicTab { home, farm, qr, badges, leaderboard }
+enum BasicTab { home, farm, checkIn, badges, hub }
 
 class BasicShell extends StatefulWidget {
   const BasicShell({
@@ -591,12 +591,9 @@ class _BasicShellState extends State<BasicShell> {
           onOpenProfile: _openProfile,
         ),
       BasicTab.farm => FarmScreen(state: widget.state),
-      BasicTab.qr => QrScreen(onScanPressed: _showCheckInDialog),
+      BasicTab.checkIn => QrScreen(onScanPressed: _showCheckInDialog),
       BasicTab.badges => BadgesScreen(state: widget.state),
-      BasicTab.leaderboard => LeaderboardScreen(
-          account: _account,
-          state: widget.state,
-        ),
+      BasicTab.hub => const CampusHubScreen(),
     };
 
     return Scaffold(
@@ -613,11 +610,11 @@ class _BasicShellState extends State<BasicShell> {
           NavigationDestination(
               icon: Icon(Icons.agriculture_outlined), label: 'Farm'),
           NavigationDestination(
-              icon: Icon(Icons.qr_code_scanner_outlined), label: 'QR'),
+              icon: Icon(Icons.verified_outlined), label: 'Check In'),
           NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined), label: 'Badges'),
           NavigationDestination(
-              icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
+              icon: Icon(Icons.calendar_view_month_outlined), label: 'Hub'),
         ],
       ),
     );

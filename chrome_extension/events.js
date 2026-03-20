@@ -98,48 +98,39 @@ const INSIGHT_LEADERBOARD = [
   { email: "alina.singh@campus.edu", name: "Alina Singh", points: 860 }
 ];
 
-const FARM_MILESTONES = [
-  {
-    threshold: 0,
-    tier: "Starter Plot",
-    landLabel: "1 meadow plot",
-    items: ["Seed pouch", "Wood fence", "Welcome sign"],
-    animals: ["Chick"],
-    nextUnlock: "Water trough"
-  },
-  {
-    threshold: 300,
-    tier: "Sprout Farm",
-    landLabel: "2 meadow plots",
-    items: ["Water trough", "Berry patch", "Compost bin"],
-    animals: ["Chicken", "Duck"],
-    nextUnlock: "Windmill"
-  },
-  {
-    threshold: 650,
-    tier: "Harvest Farm",
-    landLabel: "4 meadow plots",
-    items: ["Windmill", "Market cart", "Fruit tree"],
-    animals: ["Goat", "Sheep"],
-    nextUnlock: "Red barn"
-  },
-  {
-    threshold: 1000,
-    tier: "Show Barn",
-    landLabel: "6 meadow plots",
-    items: ["Red barn", "Lantern path", "Irrigation pump"],
-    animals: ["Cow", "Piglet"],
-    nextUnlock: "Golden silo"
-  },
-  {
-    threshold: 1400,
-    tier: "Champion Ranch",
-    landLabel: "8 meadow plots",
-    items: ["Golden silo", "Orchard gate", "Festival pen"],
-    animals: ["Mini horse", "Highland calf"],
-    nextUnlock: "Maxed ranch"
-  }
+const FARM_STAGES = [
+  { threshold: 0, label: "Tiny Pony", xp: 0 },
+  { threshold: 500, label: "Pony", xp: 500 },
+  { threshold: 1500, label: "Young Bronco", xp: 1500 },
+  { threshold: 3000, label: "Adult Bronco", xp: 3000 },
+  { threshold: 5000, label: "Champion Bronco", xp: 5000 }
 ];
+
+const ACCESSORY_UNLOCKS = [
+  { threshold: 250, label: "Bandana" },
+  { threshold: 700, label: "Trail Saddle" },
+  { threshold: 1400, label: "Bronco Ribbon" },
+  { threshold: 2200, label: "Lucky Horseshoes" },
+  { threshold: 3200, label: "Champion Blanket" },
+  { threshold: 4500, label: "Gold Bridle" }
+];
+
+function hashString(value) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) & 0x7fffffff;
+  }
+  return hash;
+}
+
+function displayNameFromEmail(email) {
+  const prefix = (email || "new.farmer").split("@")[0];
+  return prefix
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "New Farmer";
+}
 
 function getTodayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -158,48 +149,78 @@ function getUpcomingEvents(limit = 4) {
     .slice(0, limit);
 }
 
-function getLeaderboard() {
-  return [...INSIGHT_LEADERBOARD].sort((a, b) => b.points - a.points);
+function getLeaderboard(currentEmail = "") {
+  const board = [...INSIGHT_LEADERBOARD];
+  if (currentEmail) {
+    const current = getPlayerProfile(currentEmail);
+    if (!board.some((player) => player.email.toLowerCase() === currentEmail.toLowerCase())) {
+      board.push({
+        email: current.email,
+        name: current.name,
+        points: current.points
+      });
+    }
+  }
+  return board.sort((a, b) => b.points - a.points);
 }
 
 function getFarmProgress(points) {
-  let current = FARM_MILESTONES[0];
+  let current = FARM_STAGES[0];
   let next = null;
 
-  FARM_MILESTONES.forEach((milestone, index) => {
-    if (points >= milestone.threshold) {
-      current = milestone;
-      next = FARM_MILESTONES[index + 1] || null;
+  FARM_STAGES.forEach((stage, index) => {
+    if (points >= stage.threshold) {
+      current = stage;
+      next = FARM_STAGES[index + 1] || null;
     }
   });
 
   const previousThreshold = current.threshold;
-  const nextThreshold = next ? next.threshold : current.threshold;
+  const nextThreshold = next ? next.threshold : 7000;
   const progress = next
     ? Math.min(1, (points - previousThreshold) / (nextThreshold - previousThreshold))
     : 1;
+  const accessories = ACCESSORY_UNLOCKS
+    .filter((item) => points >= item.threshold)
+    .map((item) => item.label);
+  const horseCount = points >= 4800 ? 4 : points >= 3200 ? 3 : points >= 1800 ? 2 : 1;
+  const animals = Array.from({ length: horseCount }, (_, index) =>
+    index === 0 ? "Thunder" : `Bronco ${index + 1}`
+  );
 
   return {
-    ...current,
+    tier: current.label,
+    stageNumber: FARM_STAGES.findIndex((stage) => stage.threshold === current.threshold) + 1,
+    stageName: current.label,
     progress,
     nextThreshold,
-    pointsToNext: next ? Math.max(0, next.threshold - points) : 0
+    pointsToNext: next ? Math.max(0, next.threshold - points) : 0,
+    nextUnlock: next ? next.label : "Champion status",
+    nextStageLabel: next ? next.label : current.label,
+    landLabel: `${horseCount} bronco paddock${horseCount > 1 ? "s" : ""}`,
+    items: accessories,
+    animals
   };
 }
 
 function getPlayerProfile(email) {
   const normalizedEmail = (email || "").toLowerCase();
+  const baseIdentity = normalizedEmail || "guest@broncoboost.app";
+  const seed = hashString(baseIdentity);
+  const points = 900 + (seed % 4200);
   const leaderboard = getLeaderboard();
+  const simulatedBoard = [...leaderboard, { email: baseIdentity, name: displayNameFromEmail(baseIdentity), points }]
+    .sort((a, b) => b.points - a.points);
+  const rank = simulatedBoard.findIndex((player) => player.email.toLowerCase() === baseIdentity) + 1;
   const existing = leaderboard.find((player) => player.email.toLowerCase() === normalizedEmail);
-  const points = existing ? existing.points : 180;
-  const rank = existing ? leaderboard.findIndex((player) => player.email.toLowerCase() === normalizedEmail) + 1 : leaderboard.length + 1;
-  const name = existing ? existing.name : "New Farmer";
+  const name = existing ? existing.name : displayNameFromEmail(baseIdentity);
 
   return {
-    email,
+    email: normalizedEmail,
     name,
     points,
     rank,
+    horseName: "Thunder",
     farm: getFarmProgress(points)
   };
 }

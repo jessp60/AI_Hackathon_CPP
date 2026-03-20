@@ -127,7 +127,7 @@ function renderList(containerId, events, emptyMessage) {
 function renderLeaderboard(email) {
   const container = document.getElementById("leaderboard-list");
   container.innerHTML = "";
-  getLeaderboard().forEach((player, index) => {
+  getLeaderboard(email).forEach((player, index) => {
     const row = document.createElement("article");
     row.className = "leaderboard-row";
 
@@ -160,14 +160,83 @@ function renderFarm(profile) {
   document.getElementById("farm-land").textContent = farm.landLabel;
   document.getElementById("farm-next").textContent = farm.nextUnlock;
   document.getElementById("farm-progress").style.width = `${Math.round(farm.progress * 100)}%`;
+  document.getElementById("farm-progress-hero").style.width = `${Math.round(farm.progress * 100)}%`;
   document.getElementById("farm-progress-text").textContent = farm.pointsToNext > 0
     ? `${farm.pointsToNext} pts until ${farm.nextUnlock}.`
-    : "Your ranch is fully upgraded for this demo tier.";
+    : "Thunder is at the top evolution tier for this demo.";
+  document.getElementById("farm-hero-name").textContent = profile.horseName;
+  document.getElementById("farm-hero-level").textContent = `Lv. ${farm.stageNumber} • ${farm.stageName}`;
+  document.getElementById("farm-hero-xp").textContent = `${profile.points}/${farm.nextThreshold}`;
+  document.getElementById("farm-horse-count").textContent = String(farm.animals.length);
+  document.getElementById("farm-accessory-count").textContent = String(farm.items.length);
+  document.getElementById("farm-next-stage").textContent = farm.nextStageLabel;
+  document.getElementById("farm-evolution-xp").textContent = `${profile.points} / ${farm.nextThreshold}`;
+  document.getElementById("farm-hero-message").textContent = farm.items.length
+    ? "Your bronco is exploring the farm with new gear!"
+    : "Your horse is exploring the farm!";
   document.getElementById("item-count").textContent = String(farm.items.length);
   document.getElementById("animal-count").textContent = String(farm.animals.length);
+  renderBroncoRow(farm.animals.length);
+  renderStageTrack(farm.stageNumber);
   renderChipList("farm-items", farm.items, "farm-chip", "No farm items unlocked yet.");
   renderChipList("farm-animals", farm.animals, "farm-chip animal", "No animals unlocked yet.");
   renderLeaderboard(profile.email);
+}
+
+function renderBroncoRow(count) {
+  const row = document.getElementById("farm-bronco-row");
+  row.innerHTML = "";
+
+  const primary = document.createElement("img");
+  primary.src = "assets/bronco.png";
+  primary.alt = "Bronco";
+  primary.className = "bronco-sprite primary-bronco";
+  row.appendChild(primary);
+
+  for (let index = 1; index < count; index += 1) {
+    const extra = document.createElement("img");
+    extra.src = "assets/bronco.png";
+    extra.alt = "Bronco";
+    extra.className = "bronco-sprite secondary-bronco";
+    row.appendChild(extra);
+  }
+}
+
+function renderStageTrack(activeStageNumber) {
+  const stages = [
+    { name: "Foal", xp: "0 XP", emoji: "🐴" },
+    { name: "Pony", xp: "500 XP", emoji: "🐎" },
+    { name: "Young Bronco", xp: "1500 XP", emoji: "🐴" },
+    { name: "Adult Bronco", xp: "3000 XP", emoji: "4" },
+    { name: "Champion", xp: "5000 XP", emoji: "5" }
+  ];
+  const track = document.getElementById("farm-stage-track");
+  track.innerHTML = "";
+
+  stages.forEach((stage, index) => {
+    const pill = document.createElement("div");
+    pill.className = "farm-stage-pill";
+    if (index + 1 === activeStageNumber) {
+      pill.classList.add("active");
+    } else if (index + 1 < activeStageNumber) {
+      pill.classList.add("unlocked");
+    }
+
+    const circle = document.createElement("div");
+    circle.className = "farm-stage-circle";
+    circle.textContent = stage.emoji;
+
+    const name = document.createElement("div");
+    name.className = "farm-stage-name";
+    name.textContent = stage.name;
+
+    const xp = document.createElement("div");
+    xp.className = "farm-stage-xp";
+    xp.textContent = stage.xp;
+
+    pill.append(circle, name, xp);
+    track.appendChild(pill);
+  });
 }
 
 function renderSignedInAccount(account) {
