@@ -109,6 +109,16 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>image_picker_ios-image_picker_ios_privacy.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
+		<key>image_picker_ios.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict/>

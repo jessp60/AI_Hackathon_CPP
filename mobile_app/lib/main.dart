@@ -1,14 +1,16 @@
-import 'dart:io';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'firebase_options.dart';
-
-const _brandGreen = Color(0xFF0B6E4F);
-const _lightBackground = Color(0xFFF5F7F6);
+import 'models/app_models.dart';
+import 'screens/badges_screen.dart';
+import 'screens/farm_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/leaderboard_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/qr_screen.dart';
+import 'theme_constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -193,8 +195,101 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: _brandGreen),
-        scaffoldBackgroundColor: _lightBackground,
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light,
+          primary: brandAccent,
+          onPrimary: Colors.white,
+          primaryContainer: Color(0xFFDDB9C1),
+          onPrimaryContainer: appText,
+          secondary: Color(0xFFB68672),
+          onSecondary: Colors.white,
+          secondaryContainer: Color(0xFFEBD8CF),
+          onSecondaryContainer: appText,
+          error: Color(0xFFB3261E),
+          onError: Colors.white,
+          errorContainer: Color(0xFFF9DEDC),
+          onErrorContainer: Color(0xFF410E0B),
+          surface: appSurface,
+          onSurface: appText,
+          onSurfaceVariant: appTextMuted,
+          outline: Color(0xFFB8AAA3),
+          outlineVariant: mutedSurface,
+          shadow: Colors.black12,
+          scrim: Colors.black54,
+          inverseSurface: appText,
+          onInverseSurface: appSurface,
+          inversePrimary: Color(0xFFE6C1C8),
+          surfaceTint: brandAccent,
+        ),
+        scaffoldBackgroundColor: appBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: appBackground,
+          foregroundColor: appText,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          centerTitle: false,
+        ),
+        cardTheme: CardThemeData(
+          color: appSurface,
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: mutedSurface),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: appSurface,
+          labelStyle: const TextStyle(color: appTextMuted),
+          hintStyle: const TextStyle(color: appTextMuted),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: mutedSurface),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: mutedSurface),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: brandAccent, width: 1.5),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: brandAccent,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: brandAccentDark,
+          ),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: appSurface,
+          indicatorColor: const Color(0xFFE6C9CF),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return TextStyle(
+              fontSize: 11,
+              height: 1.1,
+              color: selected ? brandAccentDark : appTextMuted,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return IconThemeData(
+              color: selected ? brandAccentDark : appTextMuted,
+            );
+          }),
+        ),
       ),
       home: FutureBuilder<void>(
         future: _firebaseInitialization,
@@ -344,7 +439,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('BroncoBoost')),
+      appBar: AppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -385,7 +480,7 @@ class _AuthScreenState extends State<AuthScreen> {
             if (widget.infoMessage != null) ...[
               const SizedBox(height: 12),
               Text(widget.infoMessage!,
-                  style: const TextStyle(color: _brandGreen)),
+                  style: const TextStyle(color: brandAccent)),
             ],
             const SizedBox(height: 20),
             SizedBox(
@@ -420,7 +515,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-enum BasicTab { home, events, cities, profile }
+enum BasicTab { home, farm, qr, badges, leaderboard }
 
 class BasicShell extends StatefulWidget {
   const BasicShell({
@@ -442,6 +537,26 @@ class _BasicShellState extends State<BasicShell> {
   BasicTab _selectedTab = BasicTab.home;
   late AppAccount _account = widget.account;
 
+  void _openProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(),
+          body: ProfileScreen(
+            account: _account,
+            state: widget.state,
+            onSignOut: widget.onSignOut,
+            onAccountChanged: (updatedAccount) {
+              setState(() {
+                _account = updatedAccount;
+              });
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showCheckInDialog() {
     showDialog<void>(
       context: context,
@@ -459,6 +574,12 @@ class _BasicShellState extends State<BasicShell> {
     );
   }
 
+  void _openFarm() {
+    setState(() {
+      _selectedTab = BasicTab.farm;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screen = switch (_selectedTab) {
@@ -466,24 +587,20 @@ class _BasicShellState extends State<BasicShell> {
           account: _account,
           state: widget.state,
           onCheckIn: _showCheckInDialog,
+          onOpenFarm: _openFarm,
+          onOpenProfile: _openProfile,
         ),
-      BasicTab.events => EventsScreen(events: widget.state.events),
-      BasicTab.cities => CitiesScreen(cities: widget.state.cities),
-      BasicTab.profile => ProfileScreen(
+      BasicTab.farm => FarmScreen(state: widget.state),
+      BasicTab.qr => QrScreen(onScanPressed: _showCheckInDialog),
+      BasicTab.badges => BadgesScreen(state: widget.state),
+      BasicTab.leaderboard => LeaderboardScreen(
           account: _account,
           state: widget.state,
-          onSignOut: widget.onSignOut,
-          onAccountChanged: (updatedAccount) {
-            setState(() {
-              _account = updatedAccount;
-            });
-          },
         ),
     };
 
     return Scaffold(
-      appBar: AppBar(title: const Text('BroncoBoost')),
-      body: screen,
+      body: SafeArea(child: screen),
       bottomNavigationBar: NavigationBar(
         selectedIndex: BasicTab.values.indexOf(_selectedTab),
         onDestinationSelected: (index) {
@@ -494,569 +611,15 @@ class _BasicShellState extends State<BasicShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
-              icon: Icon(Icons.event_outlined), label: 'Events'),
+              icon: Icon(Icons.agriculture_outlined), label: 'Farm'),
           NavigationDestination(
-              icon: Icon(Icons.location_city_outlined), label: 'Cities'),
+              icon: Icon(Icons.qr_code_scanner_outlined), label: 'QR'),
           NavigationDestination(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
+              icon: Icon(Icons.workspace_premium_outlined), label: 'Badges'),
+          NavigationDestination(
+              icon: Icon(Icons.leaderboard_outlined), label: 'Leaderboard'),
         ],
       ),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({
-    super.key,
-    required this.account,
-    required this.state,
-    required this.onCheckIn,
-  });
-
-  final AppAccount account;
-  final SimpleState state;
-  final VoidCallback onCheckIn;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: ListTile(
-            title: Text(account.fullName),
-            subtitle: Text('Rank #${state.rank} at CPP'),
-            trailing: ProfileAvatar(account: account),
-          ),
-        ),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('XP', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Text('${state.totalXp}',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(value: state.levelProgress),
-                const SizedBox(height: 8),
-                Text(
-                    'Level ${state.level} • ${state.currentXpIntoLevel}/${state.xpForNextLevel} XP'),
-              ],
-            ),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            title: const Text('Avatar / Character Progress'),
-            subtitle: Text(
-                '${state.avatarStage} • ${state.xpToNextStage} XP until next stage'),
-            trailing: const Icon(Icons.pets),
-          ),
-        ),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          onPressed: onCheckIn,
-          icon: const Icon(Icons.qr_code_scanner),
-          label: const Text('Check in to event'),
-        ),
-        const SizedBox(height: 20),
-        Text('Upcoming events', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        ...state.events.map(
-          (event) => Card(
-            child: ListTile(
-              title: Text(event.name),
-              subtitle: Text('${event.dateLabel} • ${event.location}'),
-              trailing: Text('+${event.xpReward} XP'),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class EventsScreen extends StatelessWidget {
-  const EventsScreen({super.key, required this.events});
-
-  final List<EventItem> events;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: events.length,
-      itemBuilder: (context, index) {
-        final event = events[index];
-        return Card(
-          child: ListTile(
-            title: Text(event.name),
-            subtitle: Text('${event.dateLabel}\n${event.location}'),
-            isThreeLine: true,
-            trailing: Text('+${event.xpReward} XP'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class CitiesScreen extends StatelessWidget {
-  const CitiesScreen({super.key, required this.cities});
-
-  final List<CityUnlock> cities;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: cities.length,
-      itemBuilder: (context, index) {
-        final city = cities[index];
-        return Card(
-          child: ListTile(
-            leading:
-                Icon(city.unlocked ? Icons.check_circle : Icons.lock_outline),
-            title: Text(city.name),
-            subtitle: Text(
-                city.unlocked ? 'Unlocked' : 'Travel here to unlock this city'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({
-    super.key,
-    required this.account,
-    required this.state,
-    required this.onSignOut,
-    required this.onAccountChanged,
-  });
-
-  final AppAccount account;
-  final SimpleState state;
-  final Future<void> Function() onSignOut;
-  final ValueChanged<AppAccount> onAccountChanged;
-
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  String? _profilePhotoMessage;
-  String? _profilePhotoError;
-  bool _isUpdatingPhoto = false;
-  final ImagePicker _imagePicker = ImagePicker();
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  Future<void> _pickProfilePhoto() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    setState(() {
-      _isUpdatingPhoto = true;
-      _profilePhotoError = null;
-      _profilePhotoMessage = null;
-    });
-
-    try {
-      final selectedImage = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-        maxWidth: 1200,
-      );
-      if (selectedImage == null) {
-        if (!mounted) return;
-        setState(() {
-          _isUpdatingPhoto = false;
-        });
-        return;
-      }
-
-      await user.updatePhotoURL(selectedImage.path);
-      await user.reload();
-      final refreshedUser = FirebaseAuth.instance.currentUser;
-      if (refreshedUser != null) {
-        widget.onAccountChanged(AppAccount.fromFirebaseUser(refreshedUser));
-      }
-      if (!mounted) return;
-      setState(() {
-        _profilePhotoMessage = 'Profile picture updated.';
-      });
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _profilePhotoError = error.message ?? 'Unable to update profile photo.';
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _profilePhotoError = 'Unable to open your photo library right now.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUpdatingPhoto = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _removeProfilePhoto() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    setState(() {
-      _isUpdatingPhoto = true;
-      _profilePhotoError = null;
-      _profilePhotoMessage = null;
-    });
-
-    try {
-      await user.updatePhotoURL(null);
-      await user.reload();
-      final refreshedUser = FirebaseAuth.instance.currentUser;
-      if (refreshedUser != null) {
-        widget.onAccountChanged(AppAccount.fromFirebaseUser(refreshedUser));
-      }
-      if (!mounted) return;
-      setState(() {
-        _profilePhotoMessage = 'Profile picture removed.';
-      });
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _profilePhotoError = error.message ?? 'Unable to remove profile photo.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUpdatingPhoto = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        ProfileAvatar(
-                          account: widget.account,
-                          radius: 32,
-                        ),
-                        Positioned(
-                          right: -4,
-                          bottom: -4,
-                          child: Material(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: _isUpdatingPhoto ? null : _pickProfilePhoto,
-                              child: const Padding(
-                                padding: EdgeInsets.all(6),
-                                child: Icon(
-                                  Icons.edit,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(widget.account.fullName),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.account.email,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: _isUpdatingPhoto ? null : _pickProfilePhoto,
-                  icon: Icon(
-                    _isUpdatingPhoto ? Icons.hourglass_top : Icons.photo_camera,
-                  ),
-                  label: Text(
-                    _isUpdatingPhoto ? 'Updating profile pic...' : 'Edit profile pic',
-                  ),
-                ),
-                if (_profilePhotoError != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _profilePhotoError!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ],
-                if (_profilePhotoMessage != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _profilePhotoMessage!,
-                    style: const TextStyle(color: _brandGreen),
-                  ),
-                ],
-                if ((widget.account.photoUrl ?? '').isNotEmpty)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: _isUpdatingPhoto ? null : _removeProfilePhoto,
-                      child: const Text('Remove profile pic'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            title: const Text('Total XP'),
-            trailing: Text('${widget.state.totalXp}'),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            title: const Text('Unlocked cities'),
-            trailing:
-                Text('${widget.state.cities.where((city) => city.unlocked).length}'),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            title: const Text('Avatar stage'),
-            trailing: Text(widget.state.avatarStage),
-          ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: widget.onSignOut,
-          child: const Text('Sign out'),
-        ),
-      ],
-    );
-  }
-}
-
-class AppAccount {
-  const AppAccount({
-    required this.uid,
-    required this.fullName,
-    required this.email,
-    this.photoUrl,
-  });
-
-  final String uid;
-  final String fullName;
-  final String email;
-  final String? photoUrl;
-
-  String get initials {
-    final parts = fullName.split(' ').where((part) => part.isNotEmpty).toList();
-    if (parts.isEmpty) return 'S';
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
-
-  factory AppAccount.fromFirebaseUser(User user) {
-    final displayName = user.displayName?.trim();
-    final emailPrefix = user.email?.split('@').first.trim() ?? 'student';
-    return AppAccount(
-      uid: user.uid,
-      fullName: (displayName != null && displayName.isNotEmpty)
-          ? displayName
-          : emailPrefix.replaceAll(RegExp(r'[._-]+'), ' '),
-      email: user.email ?? '',
-      photoUrl: user.photoURL?.trim().isEmpty ?? true ? null : user.photoURL,
-    );
-  }
-
-  AppAccount copyWith({
-    String? uid,
-    String? fullName,
-    String? email,
-    Object? photoUrl = _noPhotoUrlOverride,
-  }) {
-    return AppAccount(
-      uid: uid ?? this.uid,
-      fullName: fullName ?? this.fullName,
-      email: email ?? this.email,
-      photoUrl: identical(photoUrl, _noPhotoUrlOverride)
-          ? this.photoUrl
-          : photoUrl as String?,
-    );
-  }
-}
-
-const _noPhotoUrlOverride = Object();
-
-class ProfileAvatar extends StatelessWidget {
-  const ProfileAvatar({
-    super.key,
-    required this.account,
-    this.radius = 20,
-  });
-
-  final AppAccount account;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final photoUrl = account.photoUrl?.trim();
-    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
-    final imageProvider = hasPhoto ? _imageProvider(photoUrl) : null;
-
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: _brandGreen.withValues(alpha: 0.12),
-      backgroundImage: imageProvider,
-      child: hasPhoto
-          ? null
-          : Text(
-              account.initials,
-              style: TextStyle(
-                color: _brandGreen,
-                fontWeight: FontWeight.w600,
-                fontSize: radius * 0.75,
-              ),
-            ),
-    );
-  }
-
-  ImageProvider? _imageProvider(String photoUrl) {
-    final parsedUri = Uri.tryParse(photoUrl);
-    final isRemote = parsedUri != null &&
-        (parsedUri.scheme == 'http' || parsedUri.scheme == 'https');
-    if (isRemote) {
-      return NetworkImage(photoUrl);
-    }
-    if (photoUrl.isNotEmpty) {
-      return FileImage(File(photoUrl));
-    }
-    return null;
-  }
-}
-
-class EventItem {
-  const EventItem({
-    required this.name,
-    required this.dateLabel,
-    required this.location,
-    required this.xpReward,
-  });
-
-  final String name;
-  final String dateLabel;
-  final String location;
-  final int xpReward;
-}
-
-class CityUnlock {
-  const CityUnlock({
-    required this.name,
-    required this.unlocked,
-  });
-
-  final String name;
-  final bool unlocked;
-}
-
-class SimpleState {
-  const SimpleState({
-    required this.rank,
-    required this.level,
-    required this.totalXp,
-    required this.currentXpIntoLevel,
-    required this.xpForNextLevel,
-    required this.avatarStage,
-    required this.xpToNextStage,
-    required this.events,
-    required this.cities,
-  });
-
-  final int rank;
-  final int level;
-  final int totalXp;
-  final int currentXpIntoLevel;
-  final int xpForNextLevel;
-  final String avatarStage;
-  final int xpToNextStage;
-  final List<EventItem> events;
-  final List<CityUnlock> cities;
-
-  double get levelProgress => currentXpIntoLevel / xpForNextLevel;
-}
-
-class SimpleRepository {
-  static SimpleState stateFor(AppAccount account) {
-    final seed =
-        account.uid.codeUnits.fold<int>(0, (sum, value) => sum + value);
-    return SimpleState(
-      rank: 12,
-      level: 4 + (seed % 3),
-      totalXp: 900 + (seed % 500),
-      currentXpIntoLevel: 240 + (seed % 120),
-      xpForNextLevel: 500,
-      avatarStage: 'Rising Bronco',
-      xpToNextStage: 140,
-      events: const [
-        EventItem(
-          name: 'Startup Founder Panel',
-          dateLabel: 'Today, 5:00 PM',
-          location: 'Innovation Village',
-          xpReward: 150,
-        ),
-        EventItem(
-          name: 'CPP Networking Night',
-          dateLabel: 'Fri, 6:30 PM',
-          location: 'College of Business',
-          xpReward: 120,
-        ),
-        EventItem(
-          name: 'Hackathon Build Sprint',
-          dateLabel: 'Sat, 10:00 AM',
-          location: 'Library Lab',
-          xpReward: 220,
-        ),
-      ],
-      cities: const [
-        CityUnlock(name: 'Pomona', unlocked: true),
-        CityUnlock(name: 'Los Angeles', unlocked: true),
-        CityUnlock(name: 'San Diego', unlocked: false),
-        CityUnlock(name: 'San Francisco', unlocked: false),
-      ],
     );
   }
 }
