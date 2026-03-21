@@ -7,6 +7,7 @@ import 'models/app_models.dart';
 import 'screens/badges_screen.dart';
 import 'screens/campus_hub_screen.dart';
 import 'screens/farm_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/qr_screen.dart';
@@ -37,9 +38,19 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
     required String email,
     required String password,
   }) async {
-    if (email.trim().isEmpty || password.trim().isEmpty) {
+    final trimmedEmail = email.trim();
+
+    if (trimmedEmail.isEmpty || password.trim().isEmpty) {
       setState(() {
         _authError = 'Enter both email and password.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    if (!isValidSchoolEmail(trimmedEmail)) {
+      setState(() {
+        _authError = 'Use a valid school email address ending in .edu.';
         _authMessage = null;
       });
       return;
@@ -53,7 +64,7 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: trimmedEmail,
         password: password,
       );
     } on FirebaseAuthException catch (error) {
@@ -74,11 +85,21 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
     required String password,
     required String confirmPassword,
   }) async {
-    if (email.trim().isEmpty ||
+    final trimmedEmail = email.trim();
+
+    if (trimmedEmail.isEmpty ||
         password.trim().isEmpty ||
         confirmPassword.trim().isEmpty) {
       setState(() {
         _authError = 'Fill in every field to create your account.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    if (!isValidSchoolEmail(trimmedEmail)) {
+      setState(() {
+        _authError = 'Use a valid school email address ending in .edu.';
         _authMessage = null;
       });
       return;
@@ -101,11 +122,11 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
     try {
       final credential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email.trim(),
+        email: trimmedEmail,
         password: password,
       );
       await credential.user
-          ?.updateDisplayName(_displayNameFromEmail(email.trim()));
+          ?.updateDisplayName(_displayNameFromEmail(trimmedEmail));
       await credential.user?.reload();
       setState(() {
         _authMessage = 'Account created successfully.';
@@ -124,7 +145,9 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
   }
 
   Future<void> _sendPasswordReset(String email) async {
-    if (email.trim().isEmpty) {
+    final trimmedEmail = email.trim();
+
+    if (trimmedEmail.isEmpty) {
       setState(() {
         _authError = 'Enter your email first so we can send the reset link.';
         _authMessage = null;
@@ -132,10 +155,18 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
       return;
     }
 
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+    if (!isValidSchoolEmail(trimmedEmail)) {
       setState(() {
-        _authMessage = 'Password reset email sent to ${email.trim()}.';
+        _authError = 'Use a valid school email address ending in .edu.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: trimmedEmail);
+      setState(() {
+        _authMessage = 'Password reset email sent to $trimmedEmail.';
         _authError = null;
       });
     } on FirebaseAuthException catch (error) {
@@ -447,7 +478,10 @@ class _AuthScreenState extends State<AuthScreen> {
           children: [
             Text(
               _createMode ? 'Create your account' : 'Sign in',
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
             const SizedBox(height: 8),
             const Text('Track events, XP, avatar progress, and city unlocks.'),
@@ -498,16 +532,64 @@ class _AuthScreenState extends State<AuthScreen> {
               onPressed: widget.isSubmitting
                   ? null
                   : () => setState(() => _createMode = !_createMode),
-              child: Text(_createMode
-                  ? 'Already have an account? Sign in'
-                  : 'Need an account? Create one'),
+              child: _createMode
+                  ? Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Already have an account? ',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          TextSpan(
+                            text: 'Sign in',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: brandAccentDark,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Need an account? ',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          TextSpan(
+                            text: 'Create one',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: brandAccentDark,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
-            TextButton(
-              onPressed: widget.isSubmitting
-                  ? null
-                  : () => widget.onForgotPassword(_emailController.text),
-              child: const Text('Forgot password?'),
-            ),
+            if (!_createMode)
+              TextButton(
+                onPressed: widget.isSubmitting
+                    ? null
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (context) => ForgotPasswordScreen(
+                              initialEmail: _emailController.text,
+                              onSendReset: widget.onForgotPassword,
+                            ),
+                          ),
+                        );
+                      },
+                child: const Text(
+                  'Forgot password?',
+                  style: TextStyle(
+                    color: warmTaupe,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
