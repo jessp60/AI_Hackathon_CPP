@@ -13,6 +13,18 @@ class AppAccount {
   final String email;
   final String? photoUrl;
 
+  String get memberLabel {
+    final normalized = email.trim().toLowerCase();
+    if (normalized.endsWith('.edu')) return 'Student';
+    final seed = _stableHash(normalized.isEmpty ? uid : normalized);
+    return switch (seed % 4) {
+      0 => 'Mentee',
+      1 => 'Student',
+      2 => 'Professional',
+      _ => 'Corporate',
+    };
+  }
+
   String get initials {
     final parts = fullName.split(' ').where((part) => part.isNotEmpty).toList();
     if (parts.isEmpty) return 'S';

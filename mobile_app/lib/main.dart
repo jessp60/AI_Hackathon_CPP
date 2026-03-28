@@ -11,6 +11,7 @@ import 'screens/forgot_password_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/qr_screen.dart';
+import 'screens/volunteer_screen.dart';
 import 'theme_constants.dart';
 
 Future<void> main() async {
@@ -243,7 +244,7 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
           surface: appSurface,
           onSurface: appText,
           onSurfaceVariant: appTextMuted,
-          outline: Color(0xFFB8AAA3),
+          outline: softGold,
           outlineVariant: mutedSurface,
           shadow: Colors.black12,
           scrim: Colors.black54,
@@ -304,7 +305,7 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: appSurface,
-          indicatorColor: const Color(0xFFE6C9CF),
+          indicatorColor: const Color(0xFFF3E8C8),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return TextStyle(
@@ -597,7 +598,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-enum BasicTab { home, farm, checkIn, badges, hub }
+enum BasicTab { home, farm, volunteer, badges, hub }
 
 class BasicShell extends StatefulWidget {
   const BasicShell({
@@ -640,12 +641,28 @@ class _BasicShellState extends State<BasicShell> {
   }
 
   void _showCheckInDialog() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: appBackground,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.72,
+          child: QrScreen(onScanPressed: _showScannerDemo),
+        ),
+      ),
+    );
+  }
+
+  void _showScannerDemo() {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Check-in demo'),
+        title: const Text('QR Scanner'),
         content: const Text(
-            'This basic UI version keeps check-in as a simple demo action.'),
+          'This demo opens QR check-in from the top-right action and keeps numeric code entry available too.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -673,13 +690,62 @@ class _BasicShellState extends State<BasicShell> {
           onOpenProfile: _openProfile,
         ),
       BasicTab.farm => FarmScreen(state: widget.state),
-      BasicTab.checkIn => QrScreen(onScanPressed: _showCheckInDialog),
+      BasicTab.volunteer => VolunteerScreen(account: _account),
       BasicTab.badges => BadgesScreen(state: widget.state),
       BasicTab.hub => const CampusHubScreen(),
     };
 
     return Scaffold(
-      body: SafeArea(child: screen),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const SizedBox.shrink(),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: _showCheckInDialog,
+                child: Ink(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: appSurface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: softGold),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x12000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.qr_code_2_rounded,
+                        size: 18,
+                        color: brandAccentDark,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Check In',
+                        style: TextStyle(
+                          color: brandAccentDark,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(top: false, child: screen),
       bottomNavigationBar: NavigationBar(
         selectedIndex: BasicTab.values.indexOf(_selectedTab),
         onDestinationSelected: (index) {
@@ -692,7 +758,7 @@ class _BasicShellState extends State<BasicShell> {
           NavigationDestination(
               icon: Icon(Icons.agriculture_outlined), label: 'Farm'),
           NavigationDestination(
-              icon: Icon(Icons.verified_outlined), label: 'Check In'),
+              icon: Icon(Icons.volunteer_activism_outlined), label: 'Volunteer'),
           NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined), label: 'Badges'),
           NavigationDestination(

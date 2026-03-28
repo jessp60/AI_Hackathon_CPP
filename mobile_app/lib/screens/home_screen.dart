@@ -70,6 +70,14 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
+                            Text(
+                              account.memberLabel,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: brandAccentDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
                             Row(
                               children: [
                                 const Icon(

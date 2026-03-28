@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/campus_data.dart';
 import '../theme_constants.dart';
@@ -314,24 +315,48 @@ class _InfoLine extends StatelessWidget {
   final String label;
   final String value;
 
+  bool get _isUrl => value.startsWith('http://') || value.startsWith('https://');
+
+  Future<void> _openUrl() async {
+    final uri = Uri.tryParse(value);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.platformDefault);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: appText,
+          height: 1.35,
+        );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: RichText(
-        text: TextSpan(
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: appText,
-                height: 1.35,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: textStyle?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          if (_isUrl)
+            InkWell(
+              onTap: _openUrl,
+              child: Text(
+                value,
+                style: textStyle?.copyWith(
+                  color: brandAccentDark,
+                  decoration: TextDecoration.underline,
+                  decorationColor: brandAccentDark,
+                ),
               ),
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+            )
+          else
+            Text(
+              value,
+              style: textStyle,
             ),
-            TextSpan(text: value),
-          ],
-        ),
+        ],
       ),
     );
   }
