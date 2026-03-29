@@ -25,22 +25,18 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final opportunities = List.generate(
-      calendarEvents.length,
-      (index) => _VolunteerOpportunity(
-        eventIndex: index,
-        calendarEvent: calendarEvents[index],
-        contact: campusContacts[index % campusContacts.length],
-        isRegistered: _registeredEventIndexes.contains(index),
-        isVolunteering: _volunteeredIndexes.contains(index),
-      ),
+    final opportunities = _buildOpportunities();
+    final registeredOpportunities = opportunities
+        .where((opportunity) => opportunity.isRegistered)
+        .toList(growable: false);
+    final scoredRegistered = _scoreVolunteerMatches(
+      widget.account,
+      registeredOpportunities,
     );
-
-    final recommendedOpportunities =
-        _rankVolunteerOpportunities(widget.account, opportunities);
-    final visibleOpportunities = _selectedFeed == _VolunteerFeedView.forYou
-        ? recommendedOpportunities
-        : opportunities;
+    final scoredAll = _scoreVolunteerMatches(widget.account, opportunities);
+    final visibleMatches = _selectedFeed == _VolunteerFeedView.forYou
+        ? scoredRegistered
+        : scoredAll;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -53,110 +49,14 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Register for an event first, then unlock volunteer signup for that same event.',
+          'Students register for events first, then unlock tailored volunteer recommendations based on topic fit, role fit, geography, timing, and interest signals.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: appTextMuted,
                 height: 1.35,
               ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: appSurface,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 12,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Future Event Calendar',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: opportunities.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  mainAxisExtent: 118,
-                ),
-                itemBuilder: (context, index) {
-                  final opportunity = opportunities[index];
-                  final parts = opportunity.calendarEvent.date.split('-');
-                  final month = _monthLabel(parts[1]);
-                  final day = parts[2];
-
-                  return Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: opportunity.isRegistered
-                          ? softBlush
-                          : const Color(0xFFF1F3F5),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: opportunity.isVolunteering
-                            ? brandAccent
-                            : opportunity.isRegistered
-                                ? softGold
-                                : mutedSurface,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          month,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: appTextMuted,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                  ),
-                        ),
-                        Text(
-                          day,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 24,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Spacer(),
-                        Text(
-                          opportunity.contact.program,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                    height: 1.15,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
+        _buildCalendarCard(context, opportunities),
         const SizedBox(height: 18),
         Row(
           children: [
@@ -177,11 +77,42 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Text(
-          'Volunteer Feed',
+          'Event Registration',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Register here first. Your volunteer recommendations below update from the events you choose.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: appTextMuted,
+              ),
+        ),
+        const SizedBox(height: 14),
+        ...opportunities.map(
+          (opportunity) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _RegistrationCard(
+              opportunity: opportunity,
+              onRegister: () => _registerForEvent(opportunity.eventIndex),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Volunteer Matches',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'The For You feed uses a weighted prototype score tuned for student-event matching.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: appTextMuted,
               ),
         ),
         const SizedBox(height: 12),
@@ -213,41 +144,171 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        if (_selectedFeed == _VolunteerFeedView.forYou)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              'Ranked with cosine similarity using your member label and event keywords.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: appTextMuted,
-                  ),
+        if (_selectedFeed == _VolunteerFeedView.forYou &&
+            registeredOpportunities.isEmpty)
+          _EmptyVolunteerState(account: widget.account)
+        else ...[
+          if (_selectedFeed == _VolunteerFeedView.forYou)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'For You ranks registered events with this weighted score: Topic Relevance, Role Fit, Geographic Proximity, Calendar Fit, Historical Conversion Rate, and Student Interest Signal.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: appTextMuted,
+                      height: 1.35,
+                    ),
+              ),
+            ),
+          ...visibleMatches.map(
+            (match) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _VolunteerMatchCard(
+                match: match,
+                onToggleVolunteer: match.opportunity.isRegistered
+                    ? () => _toggleVolunteer(match.opportunity.eventIndex)
+                    : null,
+              ),
             ),
           ),
-        ...visibleOpportunities.map(
-          (opportunity) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _VolunteerCard(
-              opportunity: opportunity,
-              onRegister: () => _registerForEvent(opportunity.eventIndex),
-              onToggleVolunteer: opportunity.isRegistered
-                  ? () => _toggleVolunteer(opportunity.eventIndex)
-                  : null,
-            ),
-          ),
-        ),
+        ],
       ],
     );
   }
 
-  void _toggleVolunteer(int index) {
-    final event = calendarEvents[index];
-    final alreadyVolunteering = _volunteeredIndexes.contains(index);
+  List<_VolunteerOpportunity> _buildOpportunities() {
+    final opportunities = List.generate(
+      calendarEvents.length,
+      (index) => _VolunteerOpportunity(
+        eventIndex: index,
+        calendarEvent: calendarEvents[index],
+        contact: campusContacts[index % campusContacts.length],
+        isRegistered: _registeredEventIndexes.contains(index),
+        isVolunteering: _volunteeredIndexes.contains(index),
+      ),
+    );
+
+    opportunities.sort(
+      (left, right) => DateTime.parse(
+        left.calendarEvent.date,
+      ).compareTo(DateTime.parse(right.calendarEvent.date)),
+    );
+    return opportunities;
+  }
+
+  Widget _buildCalendarCard(
+    BuildContext context,
+    List<_VolunteerOpportunity> opportunities,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appSurface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Future Event Calendar',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Chronological event view for registration planning.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: appTextMuted,
+                ),
+          ),
+          const SizedBox(height: 12),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: opportunities.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              mainAxisExtent: 124,
+            ),
+            itemBuilder: (context, index) {
+              final opportunity = opportunities[index];
+              final parts = opportunity.calendarEvent.date.split('-');
+              final month = _monthLabel(parts[1]);
+              final day = parts[2];
+
+              return Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color:
+                      opportunity.isRegistered ? softBlush : const Color(0xFFF1F3F5),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: opportunity.isVolunteering
+                        ? brandAccent
+                        : opportunity.isRegistered
+                            ? softGold
+                            : mutedSurface,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      month,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: appTextMuted,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                    ),
+                    Text(
+                      day,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 24,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: Text(
+                        opportunity.contact.program,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              height: 1.15,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleVolunteer(int eventIndex) {
+    final opportunity = calendarEvents[eventIndex];
+    final alreadyVolunteering = _volunteeredIndexes.contains(eventIndex);
 
     setState(() {
       if (alreadyVolunteering) {
-        _volunteeredIndexes.remove(index);
+        _volunteeredIndexes.remove(eventIndex);
       } else {
-        _volunteeredIndexes.add(index);
+        _volunteeredIndexes.add(eventIndex);
       }
     });
 
@@ -255,23 +316,23 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
       SnackBar(
         content: Text(
           alreadyVolunteering
-              ? 'Volunteer signup removed for ${event.region}.'
-              : 'You signed up to volunteer at ${event.region}.',
+              ? 'Volunteer signup removed for ${opportunity.region}.'
+              : 'You signed up to volunteer at ${opportunity.region}.',
         ),
       ),
     );
   }
 
-  void _registerForEvent(int index) {
-    final event = calendarEvents[index];
-    final alreadyRegistered = _registeredEventIndexes.contains(index);
+  void _registerForEvent(int eventIndex) {
+    final opportunity = calendarEvents[eventIndex];
+    final alreadyRegistered = _registeredEventIndexes.contains(eventIndex);
 
     setState(() {
       if (alreadyRegistered) {
-        _registeredEventIndexes.remove(index);
-        _volunteeredIndexes.remove(index);
+        _registeredEventIndexes.remove(eventIndex);
+        _volunteeredIndexes.remove(eventIndex);
       } else {
-        _registeredEventIndexes.add(index);
+        _registeredEventIndexes.add(eventIndex);
       }
     });
 
@@ -279,8 +340,8 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
       SnackBar(
         content: Text(
           alreadyRegistered
-              ? 'Registration removed for ${event.region}.'
-              : 'You registered for ${event.region}. You can volunteer now.',
+              ? 'Registration removed for ${opportunity.region}.'
+              : 'You registered for ${opportunity.region}. Volunteer matching is now available.',
         ),
       ),
     );
@@ -337,6 +398,109 @@ class _VolunteerSummaryCard extends StatelessWidget {
   }
 }
 
+class _RegistrationCard extends StatelessWidget {
+  const _RegistrationCard({
+    required this.opportunity,
+    required this.onRegister,
+  });
+
+  final _VolunteerOpportunity opportunity;
+  final VoidCallback onRegister;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appSurface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      opportunity.contact.program,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${opportunity.calendarEvent.date} • ${opportunity.calendarEvent.region}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: appTextMuted,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: softBlush,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  opportunity.contact.category,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: brandAccentDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Audience: ${opportunity.contact.audience}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: appTextMuted,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Linked IA lecture window: ${opportunity.calendarEvent.lectureWindow}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: appTextMuted,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: onRegister,
+              icon: Icon(
+                opportunity.isRegistered
+                    ? Icons.check_circle_outline
+                    : Icons.app_registration_outlined,
+              ),
+              label: Text(
+                opportunity.isRegistered ? 'Registered' : 'Register for Event',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FeedToggle extends StatelessWidget {
   const _FeedToggle({
     required this.label,
@@ -376,20 +540,63 @@ class _FeedToggle extends StatelessWidget {
   }
 }
 
-class _VolunteerCard extends StatelessWidget {
-  const _VolunteerCard({
-    required this.opportunity,
-    required this.onRegister,
+class _EmptyVolunteerState extends StatelessWidget {
+  const _EmptyVolunteerState({
+    required this.account,
+  });
+
+  final AppAccount account;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: appSurface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'No registered events yet',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Register for an event above first, then we’ll rank the best volunteer matches for your ${account.memberLabel.toLowerCase()} profile.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: appTextMuted,
+                  height: 1.35,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VolunteerMatchCard extends StatelessWidget {
+  const _VolunteerMatchCard({
+    required this.match,
     required this.onToggleVolunteer,
   });
 
-  final _VolunteerOpportunity opportunity;
-  final VoidCallback onRegister;
+  final _VolunteerMatch match;
   final VoidCallback? onToggleVolunteer;
 
   @override
   Widget build(BuildContext context) {
-    final responsibility = _roleSummary(opportunity.contact.volunteerRoles);
+    final opportunity = match.opportunity;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -407,27 +614,53 @@ class _VolunteerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${opportunity.calendarEvent.region} • ${opportunity.calendarEvent.date}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      opportunity.contact.program,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${opportunity.calendarEvent.date} • ${opportunity.calendarEvent.region}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: appTextMuted,
+                          ),
+                    ),
+                  ],
                 ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            opportunity.contact.program,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: appTextMuted,
-                  fontWeight: FontWeight.w600,
-                ),
+              ),
+              const SizedBox(width: 10),
+              _MatchStatusPill(score: match.totalScore),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
-            responsibility,
+            _roleSummary(opportunity.contact.volunteerRoles),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: appText,
                   height: 1.35,
                 ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _matchFactorEntries(match)
+                .map(
+                  (entry) => _MatchFactorTag(
+                    label: entry.label,
+                    strength: entry.value,
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: 12),
           Text(
@@ -437,38 +670,89 @@ class _VolunteerCard extends StatelessWidget {
                   height: 1.35,
                 ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Why this match: ${match.matchReason}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: appTextMuted,
+                  height: 1.35,
+                ),
+          ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                opportunity.isRegistered
-                    ? 'Registered for this event'
-                    : 'Register first to volunteer',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: opportunity.isRegistered
-                          ? brandAccentDark
-                          : appTextMuted,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              OutlinedButton(
-                onPressed: onRegister,
-                child: Text(
-                  opportunity.isRegistered ? 'Registered' : 'Register',
-                ),
-              ),
-              FilledButton(
-                onPressed: onToggleVolunteer,
-                child: Text(
-                  opportunity.isVolunteering ? 'Signed Up' : 'Volunteer',
-                ),
-              ),
-            ],
+          FilledButton.icon(
+            onPressed: onToggleVolunteer,
+            icon: Icon(
+              opportunity.isVolunteering
+                  ? Icons.check_circle_outline
+                  : Icons.volunteer_activism_outlined,
+            ),
+            label: Text(
+              opportunity.isVolunteering ? 'Signed Up to Volunteer' : 'Volunteer',
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MatchStatusPill extends StatelessWidget {
+  const _MatchStatusPill({
+    required this.score,
+  });
+
+  final double score;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [brandAccent, softGold],
+        ),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        _matchStatusLabel(score),
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+    );
+  }
+}
+
+class _MatchFactorTag extends StatelessWidget {
+  const _MatchFactorTag({
+    required this.label,
+    required this.strength,
+  });
+
+  final String label;
+  final double strength;
+
+  @override
+  Widget build(BuildContext context) {
+    final opacity = 0.28 + (strength.clamp(0.0, 1.0) * 0.72);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            brandAccent.withValues(alpha: opacity),
+            softGold.withValues(alpha: min(1.0, opacity + 0.08)),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: strength >= 0.58 ? Colors.white : brandAccentDark,
+              fontWeight: FontWeight.w700,
+            ),
       ),
     );
   }
@@ -488,6 +772,30 @@ class _VolunteerOpportunity {
   final CampusContact contact;
   final bool isRegistered;
   final bool isVolunteering;
+}
+
+class _VolunteerMatch {
+  const _VolunteerMatch({
+    required this.opportunity,
+    required this.topicRelevance,
+    required this.roleFit,
+    required this.geographicProximity,
+    required this.calendarFit,
+    required this.historicalConversionRate,
+    required this.studentInterestSignal,
+    required this.totalScore,
+    required this.matchReason,
+  });
+
+  final _VolunteerOpportunity opportunity;
+  final double topicRelevance;
+  final double roleFit;
+  final double geographicProximity;
+  final double calendarFit;
+  final double historicalConversionRate;
+  final double studentInterestSignal;
+  final double totalScore;
+  final String matchReason;
 }
 
 enum _VolunteerFeedView { forYou, all }
@@ -522,34 +830,192 @@ String _roleSummary(String roles) {
   return 'Help with the event by serving as a $leadRole, supporting attendees, and staying available during the main activity window.';
 }
 
-List<_VolunteerOpportunity> _rankVolunteerOpportunities(
+List<_VolunteerMatch> _scoreVolunteerMatches(
   AppAccount account,
   List<_VolunteerOpportunity> opportunities,
 ) {
-  final userVector = _tokenVector(
-    '${account.memberLabel} ${account.fullName} ${account.email}',
+  const weights = (
+    topic: 0.24,
+    role: 0.18,
+    geographic: 0.14,
+    calendar: 0.14,
+    history: 0.14,
+    interest: 0.16,
   );
 
-  final scored = opportunities
-      .map(
-        (opportunity) => (
-          opportunity: opportunity,
-          score: _cosineSimilarity(
-            userVector,
-            _tokenVector(
-              '${opportunity.calendarEvent.region} '
-              '${opportunity.calendarEvent.courseAlignment} '
-              '${opportunity.contact.category} '
-              '${opportunity.contact.volunteerRoles} '
-              '${opportunity.contact.audience}',
-            ),
-          ),
-        ),
-      )
-      .toList()
-    ..sort((a, b) => b.score.compareTo(a.score));
+  final results = opportunities.map((opportunity) {
+    final topic = _topicRelevance(account, opportunity);
+    final role = _roleFit(account, opportunity);
+    final geographic = _geographicProximity(account, opportunity);
+    final calendar = _calendarFit(opportunity);
+    final history = _historicalConversionRate(account, opportunity);
+    final interest = _studentInterestSignal(opportunity);
 
-  return scored.map((item) => item.opportunity).toList();
+    final total = (weights.topic * topic) +
+        (weights.role * role) +
+        (weights.geographic * geographic) +
+        (weights.calendar * calendar) +
+        (weights.history * history) +
+        (weights.interest * interest);
+
+    return _VolunteerMatch(
+      opportunity: opportunity,
+      topicRelevance: topic,
+      roleFit: role,
+      geographicProximity: geographic,
+      calendarFit: calendar,
+      historicalConversionRate: history,
+      studentInterestSignal: interest,
+      totalScore: total,
+      matchReason: _buildMatchReason(
+        topic: topic,
+        role: role,
+        geographic: geographic,
+        calendar: calendar,
+        history: history,
+        interest: interest,
+      ),
+    );
+  }).toList()
+    ..sort((left, right) {
+      final scoreCompare = right.totalScore.compareTo(left.totalScore);
+      if (scoreCompare != 0) return scoreCompare;
+      return DateTime.parse(left.opportunity.calendarEvent.date).compareTo(
+        DateTime.parse(right.opportunity.calendarEvent.date),
+      );
+    });
+
+  return results;
+}
+
+double _topicRelevance(AppAccount account, _VolunteerOpportunity opportunity) {
+  final volunteerText =
+      '${account.memberLabel} ${account.fullName} ${account.email}';
+  final opportunityText =
+      '${opportunity.contact.category} ${opportunity.contact.program} '
+      '${opportunity.calendarEvent.courseAlignment} '
+      '${opportunity.contact.volunteerRoles} '
+      '${opportunity.contact.audience}';
+  return _cosineSimilarity(
+    _tokenVector(volunteerText),
+    _tokenVector(opportunityText),
+  );
+}
+
+double _roleFit(AppAccount account, _VolunteerOpportunity opportunity) {
+  final preferredRoles = _preferredRolesForLabel(account.memberLabel);
+  final roles = opportunity.contact.volunteerRoles
+      .toLowerCase()
+      .split(';')
+      .map((role) => role.trim())
+      .toList();
+  if (roles.isEmpty) return 0.25;
+  if (roles.any(preferredRoles.contains)) return 1.0;
+  if (roles.any((role) => role.contains('speaker')) &&
+      account.memberLabel == 'Professional') {
+    return 0.86;
+  }
+  if (roles.any((role) => role.contains('mentor')) &&
+      account.memberLabel == 'Mentee') {
+    return 0.72;
+  }
+  return 0.42;
+}
+
+double _geographicProximity(
+  AppAccount account,
+  _VolunteerOpportunity opportunity,
+) {
+  final homeMetro = _homeMetroFor(account);
+  final region = opportunity.calendarEvent.region.toLowerCase();
+  if (region.contains(homeMetro.toLowerCase())) return 1.0;
+  if (region.contains('los angeles') && homeMetro == 'Pomona') return 0.9;
+  if (region.contains('orange county') && homeMetro == 'Pomona') return 0.75;
+  if (region.contains('ventura') && homeMetro == 'Los Angeles') return 0.72;
+  if (region.contains('san diego') && homeMetro == 'Los Angeles') return 0.52;
+  return 0.38;
+}
+
+double _calendarFit(_VolunteerOpportunity opportunity) {
+  final eventDate = DateTime.parse(opportunity.calendarEvent.date);
+  final today = DateTime.now();
+  final daysAway = eventDate.difference(today).inDays.abs();
+  if (daysAway <= 14) return 1.0;
+  if (daysAway <= 30) return 0.82;
+  if (daysAway <= 60) return 0.66;
+  if (daysAway <= 120) return 0.48;
+  return 0.32;
+}
+
+double _historicalConversionRate(
+  AppAccount account,
+  _VolunteerOpportunity opportunity,
+) {
+  final seed = _stableSeed(
+    '${account.uid}-${opportunity.contact.category}-${opportunity.calendarEvent.region}',
+  );
+  final baseline = 0.45 + ((seed % 35) / 100);
+  if (opportunity.contact.category.toLowerCase().contains('career')) {
+    return min(1.0, baseline + 0.12);
+  }
+  if (opportunity.contact.category.toLowerCase().contains('hackathon')) {
+    return min(1.0, baseline + 0.08);
+  }
+  return min(1.0, baseline);
+}
+
+double _studentInterestSignal(_VolunteerOpportunity opportunity) {
+  var score = 0.4;
+  final text =
+      '${opportunity.contact.category} ${opportunity.contact.program} ${opportunity.contact.audience}'
+          .toLowerCase();
+  if (text.contains('hackathon') || text.contains('ai')) score += 0.2;
+  if (text.contains('career') || text.contains('employer')) score += 0.18;
+  if (text.contains('students')) score += 0.08;
+  if (text.contains('research')) score += 0.06;
+  return score.clamp(0.0, 1.0);
+}
+
+String _buildMatchReason({
+  required double topic,
+  required double role,
+  required double geographic,
+  required double calendar,
+  required double history,
+  required double interest,
+}) {
+  final factors = <String, double>{
+    'topic fit': topic,
+    'role fit': role,
+    'geographic proximity': geographic,
+    'calendar fit': calendar,
+    'conversion history': history,
+    'student demand': interest,
+  }.entries.toList()
+    ..sort((left, right) => right.value.compareTo(left.value));
+
+  return 'Strongest drivers: ${factors[0].key}, ${factors[1].key}, and ${factors[2].key}.';
+}
+
+List<String> _preferredRolesForLabel(String memberLabel) {
+  return switch (memberLabel) {
+    'Mentee' => ['volunteer', 'mentor', 'guest speaker'],
+    'Professional' => ['speaker', 'mentor', 'panelist', 'judge'],
+    'Corporate' => ['judge', 'panelist', 'speaker'],
+    _ => ['volunteer', 'mentor', 'judge'],
+  };
+}
+
+String _homeMetroFor(AppAccount account) {
+  final lower = account.email.toLowerCase();
+  if (lower.contains('cpp') || lower.contains('pomona')) return 'Pomona';
+  final seed = _stableSeed(account.uid);
+  return switch (seed % 4) {
+    0 => 'Pomona',
+    1 => 'Los Angeles',
+    2 => 'Orange County',
+    _ => 'San Diego',
+  };
 }
 
 Map<String, double> _tokenVector(String input) {
@@ -584,4 +1050,32 @@ double _cosineSimilarity(
 
   if (leftMagnitude == 0 || rightMagnitude == 0) return 0;
   return dot / (sqrt(leftMagnitude) * sqrt(rightMagnitude));
+}
+
+int _stableSeed(String value) {
+  var hash = 0;
+  for (final codeUnit in value.codeUnits) {
+    hash = (hash * 31 + codeUnit) & 0x7fffffff;
+  }
+  return hash;
+}
+
+String _matchStatusLabel(double score) {
+  if (score >= 0.82) return 'Top Match';
+  if (score >= 0.68) return 'Strong Match';
+  if (score >= 0.52) return 'Good Match';
+  return 'Possible Match';
+}
+
+List<({String label, double value})> _matchFactorEntries(_VolunteerMatch match) {
+  final entries = <({String label, double value})>[
+    (label: 'Topic Fit', value: match.topicRelevance),
+    (label: 'Role Fit', value: match.roleFit),
+    (label: 'Geo Fit', value: match.geographicProximity),
+    (label: 'Calendar Fit', value: match.calendarFit),
+    (label: 'History', value: match.historicalConversionRate),
+    (label: 'Interest', value: match.studentInterestSignal),
+  ]..sort((left, right) => right.value.compareTo(left.value));
+
+  return entries;
 }

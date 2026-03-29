@@ -1,19 +1,31 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+enum AppAccountType { student, faculty }
+
 class AppAccount {
   const AppAccount({
     required this.uid,
     required this.fullName,
     required this.email,
+    required this.accountType,
     this.photoUrl,
+    this.facultyPosition,
+    this.isFacultyVerified = false,
   });
 
   final String uid;
   final String fullName;
   final String email;
+  final AppAccountType accountType;
   final String? photoUrl;
+  final String? facultyPosition;
+  final bool isFacultyVerified;
+
+  bool get isFaculty => accountType == AppAccountType.faculty;
+  bool get isStudent => accountType == AppAccountType.student;
 
   String get memberLabel {
+    if (isFaculty) return 'Faculty';
     final normalized = email.trim().toLowerCase();
     if (normalized.endsWith('.edu')) return 'Student';
     final seed = _stableHash(normalized.isEmpty ? uid : normalized);
@@ -33,31 +45,59 @@ class AppAccount {
   }
 
   factory AppAccount.fromFirebaseUser(User user) {
-    final displayName = user.displayName?.trim();
+    final parsed = _parseAccountProfile(
+      user.displayName,
+      fallbackEmail: user.email ?? '',
+      fallbackUid: user.uid,
+    );
     final emailPrefix = user.email?.split('@').first.trim() ?? 'student';
     return AppAccount(
       uid: user.uid,
-      fullName: (displayName != null && displayName.isNotEmpty)
-          ? displayName
+      fullName: parsed.fullName.isNotEmpty
+          ? parsed.fullName
           : emailPrefix.replaceAll(RegExp(r'[._-]+'), ' '),
       email: user.email ?? '',
+      accountType: parsed.accountType,
       photoUrl: user.photoURL?.trim().isEmpty ?? true ? null : user.photoURL,
+      facultyPosition: parsed.facultyPosition,
+      isFacultyVerified: parsed.isFacultyVerified,
     );
+  }
+
+  static String encodeDisplayName({
+    required String fullName,
+    required AppAccountType accountType,
+    String? facultyPosition,
+    bool isFacultyVerified = false,
+  }) {
+    final safeName = fullName.trim().isEmpty ? 'BroncoBoost Member' : fullName.trim();
+    final safePosition = (facultyPosition ?? '').replaceAll('|', '/').trim();
+    final accountTypeLabel = accountType == AppAccountType.faculty ? 'faculty' : 'student';
+    final verifiedLabel = isFacultyVerified ? 'verified' : 'pending';
+    return '$safeName [[bb|$accountTypeLabel|$safePosition|$verifiedLabel]]';
   }
 
   AppAccount copyWith({
     String? uid,
     String? fullName,
     String? email,
+    AppAccountType? accountType,
     Object? photoUrl = _noPhotoUrlOverride,
+    Object? facultyPosition = _noPhotoUrlOverride,
+    bool? isFacultyVerified,
   }) {
     return AppAccount(
       uid: uid ?? this.uid,
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
+      accountType: accountType ?? this.accountType,
       photoUrl: identical(photoUrl, _noPhotoUrlOverride)
           ? this.photoUrl
           : photoUrl as String?,
+      facultyPosition: identical(facultyPosition, _noPhotoUrlOverride)
+          ? this.facultyPosition
+          : facultyPosition as String?,
+      isFacultyVerified: isFacultyVerified ?? this.isFacultyVerified,
     );
   }
 }
@@ -167,6 +207,43 @@ class SimpleState {
     final current = totalXp.clamp(0, xpForNextFarmStage);
     return current / xpForNextFarmStage;
   }
+
+  String get officeStageTitle {
+    if (totalXp >= 5000) return 'Corporate Member';
+    if (totalXp >= 3000) return 'Young Professional';
+    if (totalXp >= 1500) return 'Mentee Match';
+    if (totalXp >= 500) return 'Local Event Attendee';
+    return 'Student Member';
+  }
+
+  int get officeStageNumber {
+    if (totalXp >= 5000) return 5;
+    if (totalXp >= 3000) return 4;
+    if (totalXp >= 1500) return 3;
+    if (totalXp >= 500) return 2;
+    return 1;
+  }
+
+  int get xpForNextOfficeStage {
+    if (officeStageNumber == 1) return 500;
+    if (officeStageNumber == 2) return 1500;
+    if (officeStageNumber == 3) return 3000;
+    if (officeStageNumber == 4) return 5000;
+    return 7000;
+  }
+
+  String get nextOfficeStageTitle {
+    if (officeStageNumber == 1) return 'Local Event Attendee';
+    if (officeStageNumber == 2) return 'Mentee Match';
+    if (officeStageNumber == 3) return 'Young Professional';
+    if (officeStageNumber == 4) return 'Corporate Member';
+    return 'Corporate Member';
+  }
+
+  double get officeProgress {
+    final current = totalXp.clamp(0, xpForNextOfficeStage);
+    return current / xpForNextOfficeStage;
+  }
 }
 
 class SimpleRepository {
@@ -241,4 +318,57 @@ String _farmStageTitleForXp(int totalXp) {
   if (totalXp >= 1500) return 'Young Bronco';
   if (totalXp >= 500) return 'Pony';
   return 'Tiny Pony';
+}
+
+class _ParsedAccountProfile {
+  const _ParsedAccountProfile({
+    required this.fullName,
+    required this.accountType,
+    this.facultyPosition,
+    required this.isFacultyVerified,
+  });
+
+  final String fullName;
+  final AppAccountType accountType;
+  final String? facultyPosition;
+  final bool isFacultyVerified;
+}
+
+_ParsedAccountProfile _parseAccountProfile(
+  String? rawDisplayName, {
+  required String fallbackEmail,
+  required String fallbackUid,
+}) {
+  final displayName = rawDisplayName?.trim() ?? '';
+  final metadataStart = displayName.lastIndexOf('[[bb|');
+  if (metadataStart == -1 || !displayName.endsWith(']]')) {
+    return _ParsedAccountProfile(
+      fullName: displayName,
+      accountType: AppAccountType.student,
+      facultyPosition: null,
+      isFacultyVerified: false,
+    );
+  }
+
+  final fullName = displayName.substring(0, metadataStart).trim();
+  final metadata = displayName
+      .substring(metadataStart + 5, displayName.length - 2)
+      .split('|');
+
+  final typeToken = metadata.isNotEmpty ? metadata[0].trim().toLowerCase() : 'student';
+  final positionToken = metadata.length > 1 ? metadata[1].trim() : '';
+  final verifiedToken = metadata.length > 2 ? metadata[2].trim().toLowerCase() : '';
+
+  return _ParsedAccountProfile(
+    fullName: fullName.isNotEmpty
+        ? fullName
+        : (fallbackEmail.split('@').first.trim().isNotEmpty
+            ? fallbackEmail.split('@').first.trim()
+            : fallbackUid),
+    accountType: typeToken == 'faculty'
+        ? AppAccountType.faculty
+        : AppAccountType.student,
+    facultyPosition: positionToken.isEmpty ? null : positionToken,
+    isFacultyVerified: verifiedToken == 'verified',
+  );
 }

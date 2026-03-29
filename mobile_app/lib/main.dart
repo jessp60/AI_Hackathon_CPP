@@ -4,11 +4,16 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'models/app_models.dart';
+import 'models/campus_data.dart';
+import 'models/faculty_models.dart';
 import 'screens/badges_screen.dart';
 import 'screens/campus_hub_screen.dart';
+import 'screens/faculty_home_screen.dart';
+import 'screens/faculty_volunteer_screen.dart';
 import 'screens/farm_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/office_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/qr_screen.dart';
 import 'screens/volunteer_screen.dart';
@@ -82,17 +87,32 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
   }
 
   Future<void> _createAccount({
+    required String fullName,
     required String email,
     required String password,
     required String confirmPassword,
+    required AppAccountType accountType,
+    String? facultyPosition,
   }) async {
+    final trimmedName = fullName.trim();
     final trimmedEmail = email.trim();
+    final trimmedFacultyPosition = facultyPosition?.trim() ?? '';
 
-    if (trimmedEmail.isEmpty ||
+    if (trimmedName.isEmpty ||
+        trimmedEmail.isEmpty ||
         password.trim().isEmpty ||
         confirmPassword.trim().isEmpty) {
       setState(() {
         _authError = 'Fill in every field to create your account.';
+        _authMessage = null;
+      });
+      return;
+    }
+
+    final isFaculty = accountType == AppAccountType.faculty;
+    if (isFaculty && trimmedFacultyPosition.isEmpty) {
+      setState(() {
+        _authError = 'Faculty accounts need a position or department for verification.';
         _authMessage = null;
       });
       return;
@@ -114,6 +134,20 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
       return;
     }
 
+    final facultyVerified = !isFaculty ||
+        _verifyFacultyIdentity(
+          fullName: trimmedName,
+          facultyPosition: trimmedFacultyPosition,
+        );
+    if (isFaculty && !facultyVerified) {
+      setState(() {
+        _authError =
+            'We could not verify that faculty profile against our school faculty list. Please use your full name and a more specific position.';
+        _authMessage = null;
+      });
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _authError = null;
@@ -126,8 +160,16 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
         email: trimmedEmail,
         password: password,
       );
-      await credential.user
-          ?.updateDisplayName(_displayNameFromEmail(trimmedEmail));
+      await credential.user?.updateDisplayName(
+        AppAccount.encodeDisplayName(
+          fullName: trimmedName,
+          accountType: accountType,
+          facultyPosition: trimmedFacultyPosition.isEmpty
+              ? null
+              : trimmedFacultyPosition,
+          isFacultyVerified: facultyVerified,
+        ),
+      );
       await credential.user?.reload();
       setState(() {
         _authMessage = 'Account created successfully.';
@@ -218,6 +260,35 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
     return parts
         .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
         .join(' ');
+  }
+
+  bool _verifyFacultyIdentity({
+    required String fullName,
+    required String facultyPosition,
+  }) {
+    final normalizedName = fullName.toLowerCase();
+    final normalizedPosition = facultyPosition.toLowerCase();
+    final knownFacultyNames = {
+      ...courseSchedule.map((item) => item.instructor.toLowerCase()),
+      ...speakerProfiles
+          .where((profile) => profile.company.toLowerCase().contains('cal poly pomona'))
+          .map((profile) => profile.name.toLowerCase()),
+    };
+
+    final nameMatches = knownFacultyNames.any(
+      (facultyName) =>
+          normalizedName.contains(facultyName) ||
+          facultyName.contains(normalizedName),
+    );
+    final roleLooksValid = normalizedPosition.contains('professor') ||
+        normalizedPosition.contains('faculty') ||
+        normalizedPosition.contains('instructor') ||
+        normalizedPosition.contains('research') ||
+        normalizedPosition.contains('director') ||
+        normalizedPosition.contains('lecturer') ||
+        normalizedPosition.contains('chair');
+
+    return nameMatches || roleLooksValid;
   }
 
   @override
@@ -430,9 +501,12 @@ class AuthScreen extends StatefulWidget {
   final Future<void> Function({required String email, required String password})
       onSignIn;
   final Future<void> Function({
+    required String fullName,
     required String email,
     required String password,
     required String confirmPassword,
+    required AppAccountType accountType,
+    String? facultyPosition,
   }) onCreateAccount;
   final Future<void> Function(String email) onForgotPassword;
 
@@ -442,24 +516,34 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
+  final _fullNameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  final _facultyPositionController = TextEditingController();
+  AppAccountType _accountType = AppAccountType.student;
   bool _createMode = false;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _fullNameController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
+    _facultyPositionController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() {
     if (_createMode) {
       return widget.onCreateAccount(
+        fullName: _fullNameController.text,
         email: _emailController.text,
         password: _passwordController.text,
         confirmPassword: _confirmController.text,
+        accountType: _accountType,
+        facultyPosition: _accountType == AppAccountType.faculty
+            ? _facultyPositionController.text
+            : null,
       );
     }
     return widget.onSignIn(
@@ -485,8 +569,50 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
             ),
             const SizedBox(height: 8),
-            const Text('Track events, XP, avatar progress, and city unlocks.'),
+            Text(
+              _createMode
+                  ? 'Choose a student or faculty account. Student members keep the current engagement experience, while faculty unlock volunteer sourcing and office progression.'
+                  : 'Track events, XP, avatar progress, and city unlocks.',
+            ),
             const SizedBox(height: 20),
+            if (_createMode) ...[
+              TextField(
+                controller: _fullNameController,
+                decoration: const InputDecoration(labelText: 'Full name'),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<AppAccountType>(
+                segments: const [
+                  ButtonSegment<AppAccountType>(
+                    value: AppAccountType.student,
+                    label: Text('Student'),
+                    icon: Icon(Icons.school_outlined),
+                  ),
+                  ButtonSegment<AppAccountType>(
+                    value: AppAccountType.faculty,
+                    label: Text('Faculty'),
+                    icon: Icon(Icons.badge_outlined),
+                  ),
+                ],
+                selected: {_accountType},
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _accountType = selection.first;
+                  });
+                },
+              ),
+              if (_accountType == AppAccountType.faculty) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _facultyPositionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Faculty position / department',
+                    hintText: 'Assistant Professor of Marketing',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -619,6 +745,9 @@ class BasicShell extends StatefulWidget {
 class _BasicShellState extends State<BasicShell> {
   BasicTab _selectedTab = BasicTab.home;
   late AppAccount _account = widget.account;
+  final List<FacultyOpportunity> _facultyOpportunities = buildFacultyOpportunities();
+  final List<FacultyVolunteerRequest> _facultyRequests = <FacultyVolunteerRequest>[];
+  String? _facultyResumeName;
 
   void _openProfile() {
     Navigator.of(context).push(
@@ -679,19 +808,93 @@ class _BasicShellState extends State<BasicShell> {
     });
   }
 
+  void _openVolunteer() {
+    setState(() {
+      _selectedTab = BasicTab.volunteer;
+    });
+  }
+
+  void _uploadFacultyResume(String resumeName) {
+    setState(() {
+      _facultyResumeName = resumeName;
+    });
+  }
+
+  void _submitFacultyRequest(FacultyOpportunity opportunity) {
+    final alreadyRequested = _facultyRequests.any(
+      (request) => request.opportunityId == opportunity.id,
+    );
+    if (alreadyRequested) return;
+    setState(() {
+      _facultyRequests.add(
+        FacultyVolunteerRequest(
+          opportunityId: opportunity.id,
+          status: VolunteerRequestStatus.sent,
+          resumeName: _facultyResumeName ?? 'resume.pdf',
+          roleRequested: recommendedRoleForOpportunity(opportunity, _account),
+        ),
+      );
+    });
+  }
+
+  void _advanceFacultyRequestStatus(FacultyVolunteerRequest request) {
+    final index = _facultyRequests.indexOf(request);
+    if (index == -1) return;
+    setState(() {
+      final nextStatus = switch (request.status) {
+        VolunteerRequestStatus.sent => VolunteerRequestStatus.inReview,
+        VolunteerRequestStatus.inReview => VolunteerRequestStatus.approved,
+        VolunteerRequestStatus.approved => VolunteerRequestStatus.approved,
+      };
+      _facultyRequests[index] = FacultyVolunteerRequest(
+        opportunityId: request.opportunityId,
+        status: nextStatus,
+        resumeName: request.resumeName,
+        roleRequested: request.roleRequested,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isFaculty = _account.isFaculty;
     final screen = switch (_selectedTab) {
-      BasicTab.home => HomeScreen(
-          account: _account,
+      BasicTab.home => isFaculty
+          ? FacultyHomeScreen(
+              account: _account,
+              state: widget.state,
+              opportunities: _facultyOpportunities,
+              requests: _facultyRequests,
+              onOpenOffice: _openFarm,
+              onOpenVolunteer: _openVolunteer,
+              onOpenProfile: _openProfile,
+            )
+          : HomeScreen(
+              account: _account,
+              state: widget.state,
+              onCheckIn: _showCheckInDialog,
+              onOpenFarm: _openFarm,
+              onOpenProfile: _openProfile,
+            ),
+      BasicTab.farm => isFaculty
+          ? OfficeScreen(state: widget.state)
+          : FarmScreen(state: widget.state),
+      BasicTab.volunteer => isFaculty
+          ? FacultyVolunteerScreen(
+              account: _account,
+              opportunities: _facultyOpportunities,
+              requests: _facultyRequests,
+              resumeName: _facultyResumeName,
+              onResumeUploaded: _uploadFacultyResume,
+              onSubmitRequest: _submitFacultyRequest,
+              onAdvanceStatus: _advanceFacultyRequestStatus,
+            )
+          : VolunteerScreen(account: _account),
+      BasicTab.badges => BadgesScreen(
           state: widget.state,
-          onCheckIn: _showCheckInDialog,
-          onOpenFarm: _openFarm,
-          onOpenProfile: _openProfile,
+          account: _account,
+          facultyRequests: _facultyRequests,
         ),
-      BasicTab.farm => FarmScreen(state: widget.state),
-      BasicTab.volunteer => VolunteerScreen(account: _account),
-      BasicTab.badges => BadgesScreen(state: widget.state),
       BasicTab.hub => const CampusHubScreen(),
     };
 
@@ -699,51 +902,53 @@ class _BasicShellState extends State<BasicShell> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const SizedBox.shrink(),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: _showCheckInDialog,
-                child: Ink(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: appSurface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: softGold),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x12000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(
-                        Icons.qr_code_2_rounded,
-                        size: 18,
-                        color: brandAccentDark,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Check In',
-                        style: TextStyle(
-                          color: brandAccentDark,
-                          fontWeight: FontWeight.w800,
+        actions: isFaculty
+            ? null
+            : [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Center(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: _showCheckInDialog,
+                      child: Ink(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: appSurface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: softGold),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x12000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.qr_code_2_rounded,
+                              size: 18,
+                              color: brandAccentDark,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Check In',
+                              style: TextStyle(
+                                color: brandAccentDark,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ],
+              ],
       ),
       body: SafeArea(top: false, child: screen),
       bottomNavigationBar: NavigationBar(
@@ -753,15 +958,16 @@ class _BasicShellState extends State<BasicShell> {
             _selectedTab = BasicTab.values[index];
           });
         },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+        destinations: [
+          const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
-              icon: Icon(Icons.agriculture_outlined), label: 'Farm'),
-          NavigationDestination(
+              icon: Icon(isFaculty ? Icons.apartment_outlined : Icons.agriculture_outlined),
+              label: isFaculty ? 'Office' : 'Farm'),
+          const NavigationDestination(
               icon: Icon(Icons.volunteer_activism_outlined), label: 'Volunteer'),
-          NavigationDestination(
+          const NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined), label: 'Badges'),
-          NavigationDestination(
+          const NavigationDestination(
               icon: Icon(Icons.calendar_view_month_outlined), label: 'Hub'),
         ],
       ),

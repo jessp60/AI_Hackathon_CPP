@@ -12,7 +12,7 @@ class CampusHubScreen extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Column(
         children: [
           Padding(
@@ -28,7 +28,7 @@ class CampusHubScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Real event windows, speaker profiles, published contact info, and the CPP course schedule seeded from your CSV files.',
+                  'Real event windows, speaker profiles, published contact info, the CPP course schedule, and reviewable university feed imports.',
                   style: textTheme.bodyLarge?.copyWith(
                     color: appTextMuted,
                     height: 1.35,
@@ -79,10 +79,11 @@ class CampusHubScreen extends StatelessWidget {
                 labelColor: brandAccentDark,
                 unselectedLabelColor: appTextMuted,
                 tabs: [
-                  Tab(text: 'Results'),
+                  Tab(text: 'Events'),
                   Tab(text: 'Speakers'),
                   Tab(text: 'Contacts'),
                   Tab(text: 'Schedule'),
+                  Tab(text: 'Feeds'),
                 ],
               ),
             ),
@@ -95,6 +96,7 @@ class CampusHubScreen extends StatelessWidget {
                 _SpeakersTab(),
                 _ContactsTab(),
                 _ScheduleTab(),
+                _FeedImportsTab(),
               ],
             ),
           ),
@@ -252,6 +254,135 @@ class _ScheduleTab extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _FeedImportsTab extends StatelessWidget {
+  const _FeedImportsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      itemCount: universityFeedEvents.length + 1,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return const _HubCard(
+            title: 'Approved Public Event Feeds',
+            subtitle: 'Ethical sourcing for student networking opportunities',
+            children: [
+              _InfoLine(
+                label: 'Policy',
+                value:
+                    'Only ingest public, allowlisted university pages with source attribution, light rate limits, and admin review before surfacing to students.',
+              ),
+              _InfoLine(
+                label: 'Why this matters',
+                value:
+                    'This keeps the app useful for networking while avoiding hidden scraping, private data capture, or misleading event listings.',
+              ),
+              SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _FeedChip(
+                    icon: Icons.public_outlined,
+                    label: 'Public pages only',
+                  ),
+                  _FeedChip(
+                    icon: Icons.verified_outlined,
+                    label: 'Source attributed',
+                  ),
+                  _FeedChip(
+                    icon: Icons.speed_outlined,
+                    label: 'Light refreshes',
+                  ),
+                  _FeedChip(
+                    icon: Icons.fact_check_outlined,
+                    label: 'Human reviewed',
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        final item = universityFeedEvents[index - 1];
+        return _HubCard(
+          title: item.title,
+          subtitle: '${item.university} • ${item.eventDate}',
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _FeedChip(
+                  icon: Icons.sell_outlined,
+                  label: item.category,
+                ),
+                _FeedChip(
+                  icon: Icons.language_outlined,
+                  label: item.sourceSite,
+                ),
+                _FeedChip(
+                  icon: item.reviewStatus.startsWith('Reviewed')
+                      ? Icons.verified_outlined
+                      : Icons.pending_outlined,
+                  label: item.reviewStatus,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _InfoLine(label: 'Summary', value: item.summary),
+            _InfoLine(label: 'Networking Value', value: item.networkingValue),
+            _InfoLine(label: 'Ethics Note', value: item.ethicsNote),
+            _InfoLine(label: 'Source URL', value: item.sourceUrl),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FeedChip extends StatelessWidget {
+  const _FeedChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: softBlush,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: mutedSurface),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: brandAccentDark,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: brandAccentDark,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

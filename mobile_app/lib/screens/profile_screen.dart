@@ -168,6 +168,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(widget.account.fullName),
                           const SizedBox(height: 4),
                           Text(
+                            widget.account.isFaculty
+                                ? (widget.account.facultyPosition ?? 'Faculty')
+                                : widget.account.memberLabel,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: brandAccentDark,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
                             widget.account.email,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),

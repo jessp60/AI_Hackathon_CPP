@@ -82,6 +82,32 @@ class CourseScheduleItem {
   final String guestLectureFit;
 }
 
+class UniversityFeedEvent {
+  const UniversityFeedEvent({
+    required this.title,
+    required this.university,
+    required this.eventDate,
+    required this.category,
+    required this.sourceSite,
+    required this.sourceUrl,
+    required this.summary,
+    required this.networkingValue,
+    required this.reviewStatus,
+    required this.ethicsNote,
+  });
+
+  final String title;
+  final String university;
+  final String eventDate;
+  final String category;
+  final String sourceSite;
+  final String sourceUrl;
+  final String summary;
+  final String networkingValue;
+  final String reviewStatus;
+  final String ethicsNote;
+}
+
 const calendarEvents = [
   CalendarEvent(
     date: '2026-04-16',
@@ -900,5 +926,129 @@ const courseSchedule = [
     enrollmentCap: '40',
     mode: 'Face-to-Face',
     guestLectureFit: 'Low',
+  ),
+];
+
+const universityFeedEvents = [
+  UniversityFeedEvent(
+    title: 'AI for a Better Future Hackathon',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Annual',
+    category: 'Hackathon',
+    sourceSite: 'CPP public event page',
+    sourceUrl:
+        'https://www.cpp.edu/cba/digital-innovation/what-we-do/ai-hackathon.shtml',
+    summary:
+        'Publicly listed hackathon page that students can use for networking, mentorship, and project showcase opportunities.',
+    networkingValue:
+        'Best for students seeking mentors, judges, and teammate introductions.',
+    reviewStatus: 'Reviewed for public import',
+    ethicsNote:
+        'Allowlisted public page, source-attributed, review before surfacing to students.',
+  ),
+  UniversityFeedEvent(
+    title: 'AI Hackathon Hub',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Annual',
+    category: 'Event Hub',
+    sourceSite: 'CPP public hub page',
+    sourceUrl: 'https://www.cpp.edu/cba/ai-hackathon/index.shtml',
+    summary:
+        'Central CPP event hub for current AI hackathon details, routing, and public participation information.',
+    networkingValue:
+        'Strong entry point for students who want hackathon updates and sponsor visibility.',
+    reviewStatus: 'Reviewed for public import',
+    ethicsNote:
+        'Public university source, no login wall, suitable for light refresh checks with rate limiting.',
+  ),
+  UniversityFeedEvent(
+    title: 'Information Technology Competition',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Annual',
+    category: 'Competition',
+    sourceSite: 'MISSA public page',
+    sourceUrl: 'https://www.calpolymissa.org/ITC.html',
+    summary:
+        'Competition page that can help students discover judging, mentoring, and networking touchpoints with industry guests.',
+    networkingValue:
+        'Great for students interested in judges, alumni, and recruiter-facing presentations.',
+    reviewStatus: 'Reviewed for public import',
+    ethicsNote:
+        'Student-org public page, should be scraped only on an allowlist and with explicit attribution.',
+  ),
+  UniversityFeedEvent(
+    title: 'Bronco Startup Challenge',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Ongoing series',
+    category: 'Entrepreneurship',
+    sourceSite: 'SIIL public page',
+    sourceUrl: 'https://www.cpp.edu/siil/about-us/contact-us.shtml',
+    summary:
+        'Public entrepreneurship page with staff contact and pitch-program context useful for founder and mentor networking.',
+    networkingValue:
+        'Helpful for founder-minded students looking for mentors, judges, and startup peers.',
+    reviewStatus: 'Needs event-by-event review',
+    ethicsNote:
+        'Public source, but event details should be reviewed by an admin before publishing in-app.',
+  ),
+  UniversityFeedEvent(
+    title: 'SWIFT Tech Symposium',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Annual',
+    category: 'Symposium',
+    sourceSite: 'SWIFT public site',
+    sourceUrl: 'https://techsymposium.calpolyswift.org/',
+    summary:
+        'Speaker-driven symposium page where students can discover workshops, panels, and networking sessions.',
+    networkingValue:
+        'Ideal for students who want speaker access, workshop attendance, and panel networking.',
+    reviewStatus: 'Reviewed for public import',
+    ethicsNote:
+        'Only pull metadata from public pages and link back to the original source page.',
+  ),
+  UniversityFeedEvent(
+    title: 'BroncoHacks',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Recurring',
+    category: 'Hackathon',
+    sourceSite: 'BroncoHacks public site',
+    sourceUrl: 'https://broncohacks.carrd.co/',
+    summary:
+        'Hackathon site that surfaces speaking, judging, and participation pathways for student networking and project collaboration.',
+    networkingValue:
+        'Useful for students looking for collaborators, technical mentors, and sponsor exposure.',
+    reviewStatus: 'Reviewed for public import',
+    ethicsNote:
+        'Respect robots.txt and fetch lightly; use the site as source-of-truth and preserve its attribution.',
+  ),
+  UniversityFeedEvent(
+    title: 'RSCA Conference',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Annual',
+    category: 'Research',
+    sourceSite: 'OUR public page',
+    sourceUrl: 'https://www.cpp.edu/our-cpp/index.shtml',
+    summary:
+        'Research showcase source page that can help students find presentation and reviewer-oriented networking events.',
+    networkingValue:
+        'Strong fit for students who want faculty visibility, poster feedback, and research connections.',
+    reviewStatus: 'Needs event-by-event review',
+    ethicsNote:
+        'Public university page, best handled through a reviewed import job rather than uncontrolled scraping.',
+  ),
+  UniversityFeedEvent(
+    title: 'CPP Career Fair Listings',
+    university: 'Cal Poly Pomona',
+    eventDate: 'Recurring',
+    category: 'Career Fair',
+    sourceSite: 'Career Center public page',
+    sourceUrl: 'https://careercenter.cpp.edu/channels/career-fairs/',
+    summary:
+        'Career-center page that exposes event discovery, employer touchpoints, and networking moments for students.',
+    networkingValue:
+        'High-value source for recruiter meetings, employer follow-up, and internship conversations.',
+    reviewStatus: 'Reviewed for public import',
+    ethicsNote:
+        'Public event listing, should be refreshed on a schedule with rate limits and human review.',
   ),
 ];
