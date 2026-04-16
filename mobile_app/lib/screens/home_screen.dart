@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/app_models.dart';
 import '../theme_constants.dart';
+import '../widgets/school_event_alert_card.dart';
 import '../widgets/profile_avatar.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -12,6 +13,12 @@ class HomeScreen extends StatelessWidget {
     required this.onCheckIn,
     required this.onOpenFarm,
     required this.onOpenProfile,
+    required this.alerts,
+    required this.reminderAlertIds,
+    required this.registeredAlertIds,
+    required this.onDismissAlert,
+    required this.onRemindAlert,
+    required this.onRegisterAlert,
   });
 
   final AppAccount account;
@@ -19,6 +26,12 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onCheckIn;
   final VoidCallback onOpenFarm;
   final VoidCallback onOpenProfile;
+  final List<SchoolEventAlert> alerts;
+  final Set<String> reminderAlertIds;
+  final Set<String> registeredAlertIds;
+  final ValueChanged<SchoolEventAlert> onDismissAlert;
+  final ValueChanged<SchoolEventAlert> onRemindAlert;
+  final ValueChanged<SchoolEventAlert> onRegisterAlert;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +169,29 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 22),
+        if (alerts.isNotEmpty) ...[
+          Text(
+            'New for ${account.schoolName}',
+            style: textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...alerts.take(2).map(
+            (alert) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: SchoolEventAlertCard(
+                alert: alert,
+                remindersEnabled: reminderAlertIds.contains(alert.id),
+                registrationOpened: registeredAlertIds.contains(alert.id),
+                onDismiss: () => onDismissAlert(alert),
+                onRemind: () => onRemindAlert(alert),
+                onRegister: () => onRegisterAlert(alert),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
         // Level card block showing current level, level target text, and progress bar.
         _SoftCard(
           padding: const EdgeInsets.all(22),
@@ -483,7 +519,7 @@ class HomeScreen extends StatelessWidget {
                 const Icon(Icons.star_rounded, color: Colors.white, size: 34),
                 const SizedBox(width: 12),
                 Text(
-                  'Scan Code / Check In',
+                  'IA West Check In',
                   style: textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,

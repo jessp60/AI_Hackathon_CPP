@@ -27,13 +27,15 @@ class _QrScreenState extends State<QrScreen> {
     final code = _codeController.text.trim().toUpperCase();
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your event code first.')),
+        const SnackBar(
+          content: Text('Enter your IA West alphanumeric code first.'),
+        ),
       );
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Checked in with code $code.')),
+      SnackBar(content: Text('IA West check-in confirmed with code $code.')),
     );
     _codeController.clear();
   }
@@ -49,14 +51,14 @@ class _QrScreenState extends State<QrScreen> {
             child: Column(
               children: [
                 Text(
-                  kIsWeb ? 'Event Code Check-In' : 'Check In',
+                  'IA West Check In',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   kIsWeb
-                      ? 'Enter the event\'s alphanumeric code to record attendance on the web app.'
-                      : 'Open the camera on mobile, or type the event\'s alphanumeric code instead.',
+                      ? 'Enter the event\'s alphanumeric code to record attendance in the web app.'
+                      : 'Find an Insights Association member and scan the IA West QR code to get x10 points!',
                   textAlign: TextAlign.center,
                 ),
                 if (!kIsWeb) ...[
@@ -70,7 +72,7 @@ class _QrScreenState extends State<QrScreen> {
                   FilledButton.icon(
                     onPressed: widget.onScanPressed,
                     icon: const Icon(Icons.center_focus_strong),
-                    label: const Text('Open scanner'),
+                    label: const Text('Scan QR Code'),
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -83,7 +85,7 @@ class _QrScreenState extends State<QrScreen> {
                     ),
                   ],
                   decoration: const InputDecoration(
-                    labelText: 'Event code',
+                    labelText: 'IA West code',
                     hintText: 'EX: CPP-2026-A1',
                   ),
                 ),
@@ -93,7 +95,7 @@ class _QrScreenState extends State<QrScreen> {
                   child: FilledButton.icon(
                     onPressed: _submitCode,
                     icon: const Icon(Icons.verified_outlined),
-                    label: const Text('Verify code'),
+                    label: const Text('Submit Alphanumeric Code'),
                   ),
                 ),
               ],

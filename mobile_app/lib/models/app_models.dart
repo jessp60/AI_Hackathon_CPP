@@ -1,6 +1,27 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'campus_data.dart';
+
 enum AppAccountType { student, faculty }
+enum SchoolOrganization { csu, uc, privateSchool, other }
+
+const schoolSubjects = [
+  'Marketing',
+  'Finance',
+  'Accounting',
+  'Management',
+  'Entrepreneurship',
+  'Information Systems',
+  'Computer Science',
+  'Data Science',
+  'Artificial Intelligence',
+  'Research Methods',
+  'Economics',
+  'Design',
+  'Healthcare',
+  'Sustainability',
+  'Education',
+];
 
 class AppAccount {
   const AppAccount({
@@ -8,6 +29,11 @@ class AppAccount {
     required this.fullName,
     required this.email,
     required this.accountType,
+    required this.schoolName,
+    required this.schoolOrganization,
+    this.selectedSchools = const [],
+    this.interests = const [],
+    this.expertise = const [],
     this.photoUrl,
     this.facultyPosition,
     this.isFacultyVerified = false,
@@ -17,6 +43,11 @@ class AppAccount {
   final String fullName;
   final String email;
   final AppAccountType accountType;
+  final String schoolName;
+  final SchoolOrganization schoolOrganization;
+  final List<String> selectedSchools;
+  final List<String> interests;
+  final List<String> expertise;
   final String? photoUrl;
   final String? facultyPosition;
   final bool isFacultyVerified;
@@ -25,7 +56,7 @@ class AppAccount {
   bool get isStudent => accountType == AppAccountType.student;
 
   String get memberLabel {
-    if (isFaculty) return 'Faculty';
+    if (isFaculty) return 'Board Member';
     final normalized = email.trim().toLowerCase();
     if (normalized.endsWith('.edu')) return 'Student';
     final seed = _stableHash(normalized.isEmpty ? uid : normalized);
@@ -58,6 +89,11 @@ class AppAccount {
           : emailPrefix.replaceAll(RegExp(r'[._-]+'), ' '),
       email: user.email ?? '',
       accountType: parsed.accountType,
+      schoolName: parsed.schoolName,
+      schoolOrganization: organizationForSchool(parsed.schoolName),
+      selectedSchools: parsed.selectedSchools,
+      interests: parsed.interests,
+      expertise: parsed.expertise,
       photoUrl: user.photoURL?.trim().isEmpty ?? true ? null : user.photoURL,
       facultyPosition: parsed.facultyPosition,
       isFacultyVerified: parsed.isFacultyVerified,
@@ -67,14 +103,24 @@ class AppAccount {
   static String encodeDisplayName({
     required String fullName,
     required AppAccountType accountType,
+    required String schoolName,
+    List<String>? selectedSchools,
+    required List<String> interests,
+    required List<String> expertise,
     String? facultyPosition,
     bool isFacultyVerified = false,
   }) {
     final safeName = fullName.trim().isEmpty ? 'BroncoBoost Member' : fullName.trim();
     final safePosition = (facultyPosition ?? '').replaceAll('|', '/').trim();
+    final safeSchool = schoolName.replaceAll('|', '/').trim();
+    final safeSelectedSchools = (selectedSchools ?? [schoolName])
+        .map(_metadataSafeValue)
+        .join(',');
+    final safeInterests = interests.map(_metadataSafeValue).join(',');
+    final safeExpertise = expertise.map(_metadataSafeValue).join(',');
     final accountTypeLabel = accountType == AppAccountType.faculty ? 'faculty' : 'student';
     final verifiedLabel = isFacultyVerified ? 'verified' : 'pending';
-    return '$safeName [[bb|$accountTypeLabel|$safePosition|$verifiedLabel]]';
+    return '$safeName [[bb|$accountTypeLabel|$safePosition|$verifiedLabel|$safeSchool|$safeInterests|$safeExpertise|$safeSelectedSchools]]';
   }
 
   AppAccount copyWith({
@@ -82,6 +128,11 @@ class AppAccount {
     String? fullName,
     String? email,
     AppAccountType? accountType,
+    String? schoolName,
+    SchoolOrganization? schoolOrganization,
+    List<String>? selectedSchools,
+    List<String>? interests,
+    List<String>? expertise,
     Object? photoUrl = _noPhotoUrlOverride,
     Object? facultyPosition = _noPhotoUrlOverride,
     bool? isFacultyVerified,
@@ -91,6 +142,11 @@ class AppAccount {
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
       accountType: accountType ?? this.accountType,
+      schoolName: schoolName ?? this.schoolName,
+      schoolOrganization: schoolOrganization ?? this.schoolOrganization,
+      selectedSchools: selectedSchools ?? this.selectedSchools,
+      interests: interests ?? this.interests,
+      expertise: expertise ?? this.expertise,
       photoUrl: identical(photoUrl, _noPhotoUrlOverride)
           ? this.photoUrl
           : photoUrl as String?,
@@ -116,6 +172,24 @@ class EventItem {
   final String dateLabel;
   final String location;
   final int xpReward;
+}
+
+class SchoolEventAlert {
+  const SchoolEventAlert({
+    required this.id,
+    required this.title,
+    required this.summary,
+    required this.eventDate,
+    required this.sourceUrl,
+    required this.sourceSite,
+  });
+
+  final String id;
+  final String title;
+  final String summary;
+  final String eventDate;
+  final String sourceUrl;
+  final String sourceSite;
 }
 
 class CityUnlock {
@@ -266,7 +340,60 @@ class SimpleRepository {
       xpForNextLevel: xpForNextLevel,
       avatarStage: _farmStageTitleForXp(totalXp),
       xpToNextStage: xpToNextStage,
-      events: const [
+      events: _eventsForSchool(account),
+      cities: const [
+        CityUnlock(name: 'Pomona', unlocked: true),
+        CityUnlock(name: 'Los Angeles', unlocked: true),
+        CityUnlock(name: 'San Diego', unlocked: false),
+        CityUnlock(name: 'San Francisco', unlocked: false),
+      ],
+    );
+  }
+}
+
+List<EventItem> _eventsForSchool(AppAccount account) {
+  return switch (account.schoolOrganization) {
+    SchoolOrganization.uc => const [
+        EventItem(
+          name: 'UC Research Networking Panel',
+          dateLabel: 'Thu, 4:30 PM',
+          location: 'Regional UC Career Center',
+          xpReward: 140,
+        ),
+        EventItem(
+          name: 'UC Student Innovation Mixer',
+          dateLabel: 'Fri, 6:00 PM',
+          location: 'Innovation Commons',
+          xpReward: 120,
+        ),
+        EventItem(
+          name: 'University of California Career Speaker Series',
+          dateLabel: 'Sat, 10:00 AM',
+          location: 'Main Lecture Hall',
+          xpReward: 180,
+        ),
+      ],
+    SchoolOrganization.privateSchool => [
+        EventItem(
+          name: '${account.schoolName} Networking Night',
+          dateLabel: 'Thu, 5:30 PM',
+          location: 'Student Union',
+          xpReward: 130,
+        ),
+        EventItem(
+          name: '${account.schoolName} Career Workshop',
+          dateLabel: 'Fri, 2:00 PM',
+          location: 'Business Center',
+          xpReward: 110,
+        ),
+        EventItem(
+          name: '${account.schoolName} Mentor Meetup',
+          dateLabel: 'Sat, 11:00 AM',
+          location: 'Campus Commons',
+          xpReward: 170,
+        ),
+      ],
+    _ => const [
         EventItem(
           name: 'Startup Founder Panel',
           dateLabel: 'Today, 5:00 PM',
@@ -286,14 +413,7 @@ class SimpleRepository {
           xpReward: 220,
         ),
       ],
-      cities: const [
-        CityUnlock(name: 'Pomona', unlocked: true),
-        CityUnlock(name: 'Los Angeles', unlocked: true),
-        CityUnlock(name: 'San Diego', unlocked: false),
-        CityUnlock(name: 'San Francisco', unlocked: false),
-      ],
-    );
-  }
+  };
 }
 
 int _stableHash(String value) {
@@ -324,12 +444,20 @@ class _ParsedAccountProfile {
   const _ParsedAccountProfile({
     required this.fullName,
     required this.accountType,
+    required this.schoolName,
+    required this.selectedSchools,
+    required this.interests,
+    required this.expertise,
     this.facultyPosition,
     required this.isFacultyVerified,
   });
 
   final String fullName;
   final AppAccountType accountType;
+  final String schoolName;
+  final List<String> selectedSchools;
+  final List<String> interests;
+  final List<String> expertise;
   final String? facultyPosition;
   final bool isFacultyVerified;
 }
@@ -345,6 +473,10 @@ _ParsedAccountProfile _parseAccountProfile(
     return _ParsedAccountProfile(
       fullName: displayName,
       accountType: AppAccountType.student,
+      schoolName: 'Cal Poly Pomona',
+      selectedSchools: const ['Cal Poly Pomona'],
+      interests: const ['Marketing'],
+      expertise: const ['Marketing'],
       facultyPosition: null,
       isFacultyVerified: false,
     );
@@ -358,6 +490,12 @@ _ParsedAccountProfile _parseAccountProfile(
   final typeToken = metadata.isNotEmpty ? metadata[0].trim().toLowerCase() : 'student';
   final positionToken = metadata.length > 1 ? metadata[1].trim() : '';
   final verifiedToken = metadata.length > 2 ? metadata[2].trim().toLowerCase() : '';
+  final schoolToken = metadata.length > 3 ? metadata[3].trim() : '';
+  final interestsToken = metadata.length > 4 ? metadata[4].trim() : '';
+  final expertiseToken = metadata.length > 5 ? metadata[5].trim() : '';
+  final selectedSchoolsToken = metadata.length > 6 ? metadata[6].trim() : '';
+  final parsedSchoolName = schoolToken.isEmpty ? 'Cal Poly Pomona' : schoolToken;
+  final parsedSelectedSchools = _decodeOptionalMetadataList(selectedSchoolsToken);
 
   return _ParsedAccountProfile(
     fullName: fullName.isNotEmpty
@@ -368,7 +506,143 @@ _ParsedAccountProfile _parseAccountProfile(
     accountType: typeToken == 'faculty'
         ? AppAccountType.faculty
         : AppAccountType.student,
+    schoolName: parsedSchoolName,
+    selectedSchools: parsedSelectedSchools.isEmpty
+        ? [parsedSchoolName]
+        : parsedSelectedSchools,
+    interests: _decodeMetadataList(interestsToken),
+    expertise: _decodeMetadataList(expertiseToken),
     facultyPosition: positionToken.isEmpty ? null : positionToken,
     isFacultyVerified: verifiedToken == 'verified',
   );
+}
+
+SchoolOrganization organizationForSchool(String schoolName) {
+  final lower = schoolName.toLowerCase();
+  if (lower.contains('cal state') ||
+      lower.contains('cal poly') ||
+      lower.contains('csu') ||
+      lower.contains('state university')) {
+    return SchoolOrganization.csu;
+  }
+  if (lower.contains('university of california') ||
+      lower.contains(RegExp(r'\buc\b')) ||
+      lower.contains('ucla') ||
+      lower.contains('uci') ||
+      lower.contains('ucsd') ||
+      lower.contains('berkeley')) {
+    return SchoolOrganization.uc;
+  }
+  if (lower.contains('university') ||
+      lower.contains('college') ||
+      lower.contains('institute')) {
+    return SchoolOrganization.privateSchool;
+  }
+  return SchoolOrganization.other;
+}
+
+bool schoolMatchesOpportunity(AppAccount account, String haystack) {
+  final lowerHaystack = haystack.toLowerCase();
+  final selectedSchools = account.selectedSchools.isEmpty
+          ? [account.schoolName]
+          : account.selectedSchools;
+  final schools = selectedSchools
+      .map((school) => school.toLowerCase())
+      .toList(growable: false);
+  if (schools.any(lowerHaystack.contains)) return true;
+
+  final organizations = selectedSchools
+      .map(organizationForSchool)
+      .toSet();
+
+  return organizations.any((organization) => switch (organization) {
+    SchoolOrganization.csu =>
+      lowerHaystack.contains('cal poly') ||
+          lowerHaystack.contains('csu') ||
+          lowerHaystack.contains('state university') ||
+          lowerHaystack.contains('cpp') ||
+          lowerHaystack.contains('csulb') ||
+          lowerHaystack.contains('csuf') ||
+          lowerHaystack.contains('csuci'),
+    SchoolOrganization.uc =>
+      lowerHaystack.contains('university of california') ||
+          lowerHaystack.contains('ucla') ||
+          lowerHaystack.contains('uci') ||
+          lowerHaystack.contains('uc san diego') ||
+          lowerHaystack.contains('ucsd') ||
+          lowerHaystack.contains('berkeley'),
+    SchoolOrganization.privateSchool =>
+      schools.any((school) => lowerHaystack.contains(school.split(' ').first)),
+    SchoolOrganization.other => false,
+  });
+}
+
+bool matchesAccountSubjects(AppAccount account, String haystack) {
+  final lowerHaystack = haystack.toLowerCase();
+  final tokens = {...account.interests, ...account.expertise}
+      .map((item) => item.toLowerCase())
+      .toList(growable: false);
+  return tokens.any((token) => lowerHaystack.contains(token));
+}
+
+String _metadataSafeValue(String value) {
+  return value.replaceAll('|', '/').replaceAll(',', '/').trim();
+}
+
+List<String> _decodeMetadataList(String raw) {
+  if (raw.isEmpty) return const ['Marketing'];
+  return raw
+      .split(',')
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+}
+
+List<String> _decodeOptionalMetadataList(String raw) {
+  if (raw.isEmpty) return const [];
+  return raw
+      .split(',')
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+}
+
+List<String> availableSchoolNames() {
+  final options = <String>{
+    'Cal Poly Pomona',
+    'Cal State Fullerton',
+    'Cal State Long Beach',
+    'Cal State Channel Islands',
+    'San Diego State University',
+    'UC San Diego',
+    'UCLA',
+    'UC Irvine',
+    'UC Berkeley',
+    'UC Davis',
+    'USC',
+    'Loyola Marymount University',
+    'Portland State',
+    'University of Oregon',
+    'Oregon State',
+    'Seattle University',
+    'University of Washington',
+  };
+
+  for (final event in calendarEvents) {
+    for (final school in event.nearbyUniversities.split(',')) {
+      final trimmed = school.trim();
+      if (trimmed.isEmpty) continue;
+      options.add(trimmed == 'CPP' ? 'Cal Poly Pomona' : trimmed);
+    }
+  }
+
+  for (final event in universityFeedEvents) {
+    final school = event.university.trim();
+    if (school.isNotEmpty) {
+      options.add(school);
+    }
+  }
+
+  final sorted = options.toList(growable: false)..sort();
+  return sorted;
 }

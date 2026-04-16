@@ -53,18 +53,26 @@ class FacultyVolunteerRequest {
   final String roleRequested;
 }
 
-List<FacultyOpportunity> buildFacultyOpportunities() {
+List<FacultyOpportunity> buildFacultyOpportunities(AppAccount account) {
   final matchingContacts = campusContacts.where((contact) {
     final roles = contact.volunteerRoles.toLowerCase();
-    return roles.contains('judge') ||
+    final schoolScopedText =
+        '${contact.program} ${contact.hostUnit} ${contact.publicUrl} ${contact.audience}';
+    final matchesSchool = schoolMatchesOpportunity(account, schoolScopedText);
+    return matchesSchool &&
+        (roles.contains('judge') ||
         roles.contains('speaker') ||
         roles.contains('panelist') ||
         roles.contains('reviewer') ||
-        roles.contains('mentor');
+        roles.contains('mentor'));
   }).toList(growable: false);
 
-  return List.generate(matchingContacts.length, (index) {
-    final contact = matchingContacts[index];
+  final scopedContacts = matchingContacts.isEmpty
+      ? _fallbackContactsForOrganization(account.schoolOrganization)
+      : matchingContacts;
+
+  return List.generate(scopedContacts.length, (index) {
+    final contact = scopedContacts[index];
     final calendar = calendarEvents[index % calendarEvents.length];
     return FacultyOpportunity(
       id: 'faculty-opp-$index',
@@ -80,6 +88,51 @@ List<FacultyOpportunity> buildFacultyOpportunities() {
       contactInfo: contact.contactInfo,
     );
   });
+}
+
+List<CampusContact> _fallbackContactsForOrganization(
+  SchoolOrganization organization,
+) {
+  return switch (organization) {
+    SchoolOrganization.uc => const [
+        CampusContact(
+          program: 'UC Regional Research Symposium',
+          category: 'Research symposium',
+          recurrence: 'Annual',
+          hostUnit: 'University of California network',
+          volunteerRoles: 'Guest speaker; Panelist; Reviewer',
+          audience: 'UC students and faculty',
+          publicUrl: 'https://admission.universityofcalifornia.edu/',
+          contactName: 'UC campus event teams',
+          contactInfo: 'See campus event page',
+        ),
+        CampusContact(
+          program: 'UC Career Fair Speaker Series',
+          category: 'Career fair',
+          recurrence: 'Recurring',
+          hostUnit: 'University of California career centers',
+          volunteerRoles: 'Panelist; Guest speaker',
+          audience: 'Students across the UC system',
+          publicUrl: 'https://admission.universityofcalifornia.edu/',
+          contactName: 'UC career teams',
+          contactInfo: 'See campus event page',
+        ),
+      ],
+    SchoolOrganization.privateSchool => const [
+        CampusContact(
+          program: 'Independent University Leadership Panel',
+          category: 'Career panel',
+          recurrence: 'Recurring',
+          hostUnit: 'Private university network',
+          volunteerRoles: 'Panelist; Guest speaker; Mentor',
+          audience: 'Students and alumni',
+          publicUrl: 'https://www.aiccu.edu/',
+          contactName: 'Campus leadership programs',
+          contactInfo: 'See campus event page',
+        ),
+      ],
+    _ => const [],
+  };
 }
 
 String recommendedRoleForOpportunity(

@@ -17,13 +17,6 @@ class OfficeScreen extends StatelessWidget {
       'Young Professional',
       'Corporate Member',
     ];
-    const stageIcons = [
-      Icons.school_outlined,
-      Icons.event_available_outlined,
-      Icons.handshake_outlined,
-      Icons.business_center_outlined,
-      Icons.apartment_outlined,
-    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
@@ -79,10 +72,10 @@ class OfficeScreen extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const Icon(
-                        Icons.work_outline_rounded,
-                        size: 42,
-                        color: brandAccentDark,
+                      child: _OfficeAvatarBadge(
+                        stage: state.officeStageNumber,
+                        active: true,
+                        size: 86,
                       ),
                     ),
                     const SizedBox(width: 18),
@@ -156,7 +149,7 @@ class OfficeScreen extends StatelessWidget {
                   padding: EdgeInsets.only(bottom: index == stageNames.length - 1 ? 0 : 12),
                   child: _OfficeStageTile(
                     label: stageNames[index],
-                    icon: stageIcons[index],
+                    stage: index + 1,
                     active: state.officeStageNumber == index + 1,
                     unlocked: state.officeStageNumber > index + 1,
                     xpLabel: const ['0 XP', '500 XP', '1500 XP', '3000 XP', '5000 XP'][index],
@@ -174,14 +167,14 @@ class OfficeScreen extends StatelessWidget {
 class _OfficeStageTile extends StatelessWidget {
   const _OfficeStageTile({
     required this.label,
-    required this.icon,
+    required this.stage,
     required this.active,
     required this.unlocked,
     required this.xpLabel,
   });
 
   final String label;
-  final IconData icon;
+  final int stage;
   final bool active;
   final bool unlocked;
   final String xpLabel;
@@ -205,10 +198,10 @@ class _OfficeStageTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: active ? Colors.white.withValues(alpha: 0.18) : softGold,
-            child: Icon(icon, color: foreground),
+          _OfficeAvatarBadge(
+            stage: stage,
+            active: active,
+            size: 44,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -236,4 +229,136 @@ class _OfficeStageTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OfficeAvatarBadge extends StatelessWidget {
+  const _OfficeAvatarBadge({
+    required this.stage,
+    required this.active,
+    required this.size,
+  });
+
+  final int stage;
+  final bool active;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _paletteForStage(stage, active);
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [palette.base, palette.highlight],
+        ),
+        border: Border.all(
+          color: active ? Colors.white.withValues(alpha: 0.5) : mutedSurface,
+          width: active ? 2 : 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: palette.base.withValues(alpha: 0.22),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            top: size * 0.18,
+            child: Icon(
+              Icons.circle,
+              size: size * 0.26,
+              color: palette.foreground,
+            ),
+          ),
+          Positioned(
+            bottom: size * 0.16,
+            child: Icon(
+              Icons.person_rounded,
+              size: size * 0.5,
+              color: palette.foreground,
+            ),
+          ),
+          Positioned(
+            right: size * 0.1,
+            bottom: size * 0.08,
+            child: Container(
+              height: size * 0.34,
+              width: size * 0.34,
+              decoration: BoxDecoration(
+                color: active ? Colors.white : appSurface,
+                shape: BoxShape.circle,
+                border: Border.all(color: palette.highlight, width: 1.5),
+              ),
+              child: Icon(
+                _accentIconForStage(stage),
+                size: size * 0.18,
+                color: palette.base,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvatarPalette {
+  const _AvatarPalette({
+    required this.base,
+    required this.highlight,
+    required this.foreground,
+  });
+
+  final Color base;
+  final Color highlight;
+  final Color foreground;
+}
+
+_AvatarPalette _paletteForStage(int stage, bool active) {
+  final foreground = active ? Colors.white : brandAccentDark;
+  return switch (stage) {
+    1 => _AvatarPalette(
+        base: active ? const Color(0xFF355C7D) : const Color(0xFFDCE7F3),
+        highlight: active ? softGold : const Color(0xFFF5E6BF),
+        foreground: foreground,
+      ),
+    2 => _AvatarPalette(
+        base: active ? const Color(0xFF2D6A4F) : const Color(0xFFDDF1E7),
+        highlight: active ? softGold : const Color(0xFFF7E8C6),
+        foreground: foreground,
+      ),
+    3 => _AvatarPalette(
+        base: active ? const Color(0xFF6D597A) : const Color(0xFFE8DFF0),
+        highlight: active ? softGold : const Color(0xFFF4E1C1),
+        foreground: foreground,
+      ),
+    4 => _AvatarPalette(
+        base: active ? const Color(0xFF7A4E2D) : const Color(0xFFF0E2D7),
+        highlight: active ? softGold : const Color(0xFFF6E2BE),
+        foreground: foreground,
+      ),
+    _ => _AvatarPalette(
+        base: active ? const Color(0xFF374151) : const Color(0xFFE5E7EB),
+        highlight: active ? softGold : const Color(0xFFF3E2BA),
+        foreground: foreground,
+      ),
+  };
+}
+
+IconData _accentIconForStage(int stage) {
+  return switch (stage) {
+    1 => Icons.menu_book_rounded,
+    2 => Icons.event_rounded,
+    3 => Icons.handshake_rounded,
+    4 => Icons.work_rounded,
+    _ => Icons.apartment_rounded,
+  };
 }

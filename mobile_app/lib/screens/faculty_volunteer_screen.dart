@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/app_models.dart';
 import '../models/faculty_models.dart';
 import '../theme_constants.dart';
+import '../utils/in_app_link_opener.dart';
 
 class FacultyVolunteerScreen extends StatefulWidget {
   const FacultyVolunteerScreen({
@@ -31,13 +31,24 @@ class FacultyVolunteerScreen extends StatefulWidget {
 
 class _FacultyVolunteerScreenState extends State<FacultyVolunteerScreen> {
   _FacultyVolunteerTab _selectedTab = _FacultyVolunteerTab.forYou;
+  String? _selectedOpportunitySchool;
 
   @override
   Widget build(BuildContext context) {
+    final schoolOptions = availableSchoolNames();
+    final scopedAccount = _scopedAccount();
+    final filteredOpportunities = widget.opportunities
+        .where(
+          (opportunity) => schoolMatchesOpportunity(
+            scopedAccount,
+            '${opportunity.title} ${opportunity.organization} ${opportunity.region} ${opportunity.summary} ${opportunity.publicUrl}',
+          ),
+        )
+        .toList(growable: false);
     final requestMap = {for (final request in widget.requests) request.opportunityId: request};
     final forYou = _rankFacultyOpportunities(
-      widget.account,
-      widget.opportunities,
+      scopedAccount,
+      filteredOpportunities,
       widget.requests,
     );
 
@@ -52,7 +63,7 @@ class _FacultyVolunteerScreenState extends State<FacultyVolunteerScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Faculty members can request judging, guest speaking, panelist, and symposium roles from public university opportunity pages.',
+          'Board members can request judging, guest speaking, panelist, and symposium roles from public university opportunity pages tied to their school or system.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: appTextMuted,
                 height: 1.35,
@@ -62,6 +73,42 @@ class _FacultyVolunteerScreenState extends State<FacultyVolunteerScreen> {
         _ResumeUploadCard(
           resumeName: widget.resumeName,
           onUpload: _showResumeDialog,
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: appSurface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x12000000),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: DropdownButtonFormField<String>(
+            initialValue:
+                _selectedOpportunitySchool ?? widget.account.schoolName,
+            decoration: const InputDecoration(
+              labelText: 'Opportunity school',
+            ),
+            items: schoolOptions
+                .map(
+                  (school) => DropdownMenuItem<String>(
+                    value: school,
+                    child: Text(school),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() {
+                _selectedOpportunitySchool = value;
+              });
+            },
+          ),
         ),
         const SizedBox(height: 18),
         Row(
@@ -94,12 +141,14 @@ class _FacultyVolunteerScreenState extends State<FacultyVolunteerScreen> {
         const SizedBox(height: 16),
         if (_selectedTab == _FacultyVolunteerTab.statuses)
           _FacultyStatusesView(
-            opportunities: widget.opportunities,
+            opportunities: filteredOpportunities,
             requests: widget.requests,
             onAdvanceStatus: widget.onAdvanceStatus,
           )
         else
-          ...(_selectedTab == _FacultyVolunteerTab.forYou ? forYou : widget.opportunities)
+          ...(_selectedTab == _FacultyVolunteerTab.forYou
+                  ? forYou
+                  : filteredOpportunities)
               .map(
                 (opportunity) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -114,6 +163,20 @@ class _FacultyVolunteerScreenState extends State<FacultyVolunteerScreen> {
                 ),
               ),
       ],
+    );
+  }
+
+  AppAccount _scopedAccount() {
+    final selectedSchool = _selectedOpportunitySchool;
+    if (selectedSchool == null || selectedSchool == widget.account.schoolName) {
+      return widget.account.copyWith(
+        selectedSchools: [widget.account.schoolName],
+      );
+    }
+    return widget.account.copyWith(
+      schoolName: selectedSchool,
+      schoolOrganization: organizationForSchool(selectedSchool),
+      selectedSchools: [selectedSchool],
     );
   }
 
@@ -137,9 +200,7 @@ class _FacultyVolunteerScreenState extends State<FacultyVolunteerScreen> {
   }
 
   Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.platformDefault);
+    await openInAppLink(url);
   }
 
   Future<void> _showResumeDialog() async {
@@ -370,7 +431,7 @@ class _FacultyOpportunityCard extends StatelessWidget {
             children: [
               OutlinedButton(
                 onPressed: onOpenUrl,
-                child: const Text('View source'),
+                child: const Text('Open form / page'),
               ),
               FilledButton.icon(
                 onPressed: request == null ? onRequest : null,
@@ -432,9 +493,16 @@ class _FacultyStatusesView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleOpportunityIds = opportunities
+        .map((opportunity) => opportunity.id)
+        .toSet();
+    final visibleRequests = requests
+        .where((request) => visibleOpportunityIds.contains(request.opportunityId))
+        .toList(growable: false);
     final grouped = {
       for (final status in VolunteerRequestStatus.values)
-        status: requests.where((request) => request.status == status).toList(),
+        status:
+            visibleRequests.where((request) => request.status == status).toList(),
     };
     final opportunityMap = {for (final opportunity in opportunities) opportunity.id: opportunity};
 
@@ -509,7 +577,10 @@ List<FacultyOpportunity> _rankFacultyOpportunities(
   List<FacultyVolunteerRequest> requests,
 ) {
   final historicalRoles = requests.map((request) => request.roleRequested).join(' ');
-  final facultyContext = '${account.facultyPosition ?? ''} ${account.fullName} $historicalRoles';
+  final facultyContext =
+      '${account.facultyPosition ?? ''} ${account.fullName} '
+      '${account.interests.join(' ')} ${account.expertise.join(' ')} '
+      '$historicalRoles';
 
   final scored = opportunities.map((opportunity) {
     final roleScore = _containsKeyword(

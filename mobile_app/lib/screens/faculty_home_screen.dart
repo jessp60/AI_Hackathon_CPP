@@ -4,6 +4,7 @@ import '../models/app_models.dart';
 import '../models/faculty_models.dart';
 import '../theme_constants.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/school_event_alert_card.dart';
 
 class FacultyHomeScreen extends StatelessWidget {
   const FacultyHomeScreen({
@@ -15,6 +16,12 @@ class FacultyHomeScreen extends StatelessWidget {
     required this.onOpenOffice,
     required this.onOpenVolunteer,
     required this.onOpenProfile,
+    required this.alerts,
+    required this.reminderAlertIds,
+    required this.registeredAlertIds,
+    required this.onDismissAlert,
+    required this.onRemindAlert,
+    required this.onRegisterAlert,
   });
 
   final AppAccount account;
@@ -24,6 +31,12 @@ class FacultyHomeScreen extends StatelessWidget {
   final VoidCallback onOpenOffice;
   final VoidCallback onOpenVolunteer;
   final VoidCallback onOpenProfile;
+  final List<SchoolEventAlert> alerts;
+  final Set<String> reminderAlertIds;
+  final Set<String> registeredAlertIds;
+  final ValueChanged<SchoolEventAlert> onDismissAlert;
+  final ValueChanged<SchoolEventAlert> onRemindAlert;
+  final ValueChanged<SchoolEventAlert> onRegisterAlert;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +88,7 @@ class FacultyHomeScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              account.facultyPosition ?? 'Faculty volunteer',
+                              account.facultyPosition ?? 'Board member volunteer',
                               style: textTheme.bodySmall?.copyWith(
                                 color: brandAccentDark,
                                 fontWeight: FontWeight.w700,
@@ -84,8 +97,8 @@ class FacultyHomeScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               account.isFacultyVerified
-                                  ? 'Faculty verified'
-                                  : 'Faculty profile pending review',
+                                  ? 'Board member verified'
+                                  : 'Board member profile pending review',
                               style: textTheme.bodySmall?.copyWith(
                                 color: appTextMuted,
                               ),
@@ -144,6 +157,36 @@ class FacultyHomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 22),
+        if (alerts.isNotEmpty) ...[
+          _FacultyCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'New opportunities for ${account.schoolName}',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...alerts.take(2).map(
+                  (alert) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SchoolEventAlertCard(
+                      alert: alert,
+                      remindersEnabled: reminderAlertIds.contains(alert.id),
+                      registrationOpened: registeredAlertIds.contains(alert.id),
+                      onDismiss: () => onDismissAlert(alert),
+                      onRemind: () => onRemindAlert(alert),
+                      onRegister: () => onRegisterAlert(alert),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
         _FacultyCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

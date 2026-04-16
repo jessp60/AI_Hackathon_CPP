@@ -18,6 +18,7 @@ import 'screens/profile_screen.dart';
 import 'screens/qr_screen.dart';
 import 'screens/volunteer_screen.dart';
 import 'theme_constants.dart';
+import 'utils/in_app_link_opener.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,14 +93,20 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
     required String password,
     required String confirmPassword,
     required AppAccountType accountType,
+    required String schoolName,
+    required List<String> selectedSchools,
+    required List<String> interests,
+    required List<String> expertise,
     String? facultyPosition,
   }) async {
     final trimmedName = fullName.trim();
     final trimmedEmail = email.trim();
+    final trimmedSchoolName = schoolName.trim();
     final trimmedFacultyPosition = facultyPosition?.trim() ?? '';
 
     if (trimmedName.isEmpty ||
         trimmedEmail.isEmpty ||
+        trimmedSchoolName.isEmpty ||
         password.trim().isEmpty ||
         confirmPassword.trim().isEmpty) {
       setState(() {
@@ -109,10 +116,19 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
       return;
     }
 
+    if (interests.isEmpty || expertise.isEmpty) {
+      setState(() {
+        _authError =
+            'Choose at least one subject interest and one expertise area so we can recommend better opportunities.';
+        _authMessage = null;
+      });
+      return;
+    }
+
     final isFaculty = accountType == AppAccountType.faculty;
     if (isFaculty && trimmedFacultyPosition.isEmpty) {
       setState(() {
-        _authError = 'Faculty accounts need a position or department for verification.';
+        _authError = 'Board member accounts need a position or department for verification.';
         _authMessage = null;
       });
       return;
@@ -142,7 +158,7 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
     if (isFaculty && !facultyVerified) {
       setState(() {
         _authError =
-            'We could not verify that faculty profile against our school faculty list. Please use your full name and a more specific position.';
+            'We could not verify that board member profile against our school faculty list. Please use your full name and a more specific position.';
         _authMessage = null;
       });
       return;
@@ -164,6 +180,11 @@ class _BroncoBoostAppState extends State<BroncoBoostApp> {
         AppAccount.encodeDisplayName(
           fullName: trimmedName,
           accountType: accountType,
+          schoolName: trimmedSchoolName,
+          selectedSchools:
+              selectedSchools.isEmpty ? [trimmedSchoolName] : selectedSchools,
+          interests: interests,
+          expertise: expertise,
           facultyPosition: trimmedFacultyPosition.isEmpty
               ? null
               : trimmedFacultyPosition,
@@ -506,6 +527,10 @@ class AuthScreen extends StatefulWidget {
     required String password,
     required String confirmPassword,
     required AppAccountType accountType,
+    required String schoolName,
+    required List<String> selectedSchools,
+    required List<String> interests,
+    required List<String> expertise,
     String? facultyPosition,
   }) onCreateAccount;
   final Future<void> Function(String email) onForgotPassword;
@@ -517,9 +542,14 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _fullNameController = TextEditingController();
+  final _schoolController = TextEditingController(text: 'Cal Poly Pomona');
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   final _facultyPositionController = TextEditingController();
+  final List<String> _schoolOptions = availableSchoolNames();
+  final Set<String> _selectedSchools = {'Cal Poly Pomona'};
+  final Set<String> _selectedInterests = {'Marketing'};
+  final Set<String> _selectedExpertise = {'Marketing'};
   AppAccountType _accountType = AppAccountType.student;
   bool _createMode = false;
 
@@ -527,6 +557,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void dispose() {
     _emailController.dispose();
     _fullNameController.dispose();
+    _schoolController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     _facultyPositionController.dispose();
@@ -541,6 +572,10 @@ class _AuthScreenState extends State<AuthScreen> {
         password: _passwordController.text,
         confirmPassword: _confirmController.text,
         accountType: _accountType,
+        schoolName: (_selectedSchools.toList()..sort()).first,
+        selectedSchools: _selectedSchools.toList(),
+        interests: _selectedInterests.toList(),
+        expertise: _selectedExpertise.toList(),
         facultyPosition: _accountType == AppAccountType.faculty
             ? _facultyPositionController.text
             : null,
@@ -571,7 +606,7 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 8),
             Text(
               _createMode
-                  ? 'Choose a student or faculty account. Student members keep the current engagement experience, while faculty unlock volunteer sourcing and office progression.'
+                  ? 'Choose a student or board member account, then add your school so opportunities stay tied to that campus or university system.'
                   : 'Track events, XP, avatar progress, and city unlocks.',
             ),
             const SizedBox(height: 20),
@@ -590,7 +625,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   ButtonSegment<AppAccountType>(
                     value: AppAccountType.faculty,
-                    label: Text('Faculty'),
+                    label: Text('Board Member'),
                     icon: Icon(Icons.badge_outlined),
                   ),
                 ],
@@ -606,11 +641,66 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextField(
                   controller: _facultyPositionController,
                   decoration: const InputDecoration(
-                    labelText: 'Faculty position / department',
+                    labelText: 'Board member position / department',
                     hintText: 'Assistant Professor of Marketing',
                   ),
                 ),
               ],
+              const SizedBox(height: 12),
+              _SchoolSelector(
+                title: 'Schools to match opportunities to',
+                subtitle:
+                    'Pick the schools whose public event pages BroncoBoost should use for event discovery.',
+                schoolOptions: _schoolOptions,
+                selectedValues: _selectedSchools,
+                onToggle: (school) {
+                  setState(() {
+                    if (_selectedSchools.contains(school)) {
+                      if (_selectedSchools.length > 1) {
+                        _selectedSchools.remove(school);
+                      }
+                    } else {
+                      _selectedSchools.add(school);
+                    }
+                    final ordered = _selectedSchools.toList()..sort();
+                    _schoolController.text = ordered.first;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              _SubjectSelector(
+                title: 'Subjects of interest',
+                subtitle: 'What topics do you want more opportunities in?',
+                selectedValues: _selectedInterests,
+                onToggle: (subject) {
+                  setState(() {
+                    if (_selectedInterests.contains(subject)) {
+                      if (_selectedInterests.length > 1) {
+                        _selectedInterests.remove(subject);
+                      }
+                    } else {
+                      _selectedInterests.add(subject);
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 14),
+              _SubjectSelector(
+                title: 'Areas of expertise',
+                subtitle: 'What topics should BroncoBoost trust you to help with?',
+                selectedValues: _selectedExpertise,
+                onToggle: (subject) {
+                  setState(() {
+                    if (_selectedExpertise.contains(subject)) {
+                      if (_selectedExpertise.length > 1) {
+                        _selectedExpertise.remove(subject);
+                      }
+                    } else {
+                      _selectedExpertise.add(subject);
+                    }
+                  });
+                },
+              ),
               const SizedBox(height: 12),
             ],
             TextField(
@@ -724,6 +814,120 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
+class _SubjectSelector extends StatelessWidget {
+  const _SubjectSelector({
+    required this.title,
+    required this.subtitle,
+    required this.selectedValues,
+    required this.onToggle,
+  });
+
+  final String title;
+  final String subtitle;
+  final Set<String> selectedValues;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: appTextMuted,
+              ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: schoolSubjects.map((subject) {
+            final selected = selectedValues.contains(subject);
+            return FilterChip(
+              label: Text(subject),
+              selected: selected,
+              onSelected: (_) => onToggle(subject),
+              selectedColor: softBlush,
+              checkmarkColor: brandAccentDark,
+              labelStyle: TextStyle(
+                color: selected ? brandAccentDark : appTextMuted,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              side: const BorderSide(color: mutedSurface),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SchoolSelector extends StatelessWidget {
+  const _SchoolSelector({
+    required this.title,
+    required this.subtitle,
+    required this.schoolOptions,
+    required this.selectedValues,
+    required this.onToggle,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<String> schoolOptions;
+  final Set<String> selectedValues;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: appTextMuted,
+              ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: schoolOptions.map((school) {
+            final selected = selectedValues.contains(school);
+            return FilterChip(
+              label: Text(school),
+              selected: selected,
+              onSelected: (_) => onToggle(school),
+              selectedColor: softBlush,
+              checkmarkColor: brandAccentDark,
+              labelStyle: TextStyle(
+                color: selected ? brandAccentDark : appTextMuted,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              side: const BorderSide(color: mutedSurface),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
 enum BasicTab { home, farm, volunteer, badges, hub }
 
 class BasicShell extends StatefulWidget {
@@ -743,10 +947,16 @@ class BasicShell extends StatefulWidget {
 }
 
 class _BasicShellState extends State<BasicShell> {
+  static const Duration _alertReminderCadence = Duration(days: 2);
   BasicTab _selectedTab = BasicTab.home;
   late AppAccount _account = widget.account;
-  final List<FacultyOpportunity> _facultyOpportunities = buildFacultyOpportunities();
+  late List<FacultyOpportunity> _facultyOpportunities =
+      buildFacultyOpportunities(_account);
   final List<FacultyVolunteerRequest> _facultyRequests = <FacultyVolunteerRequest>[];
+  final Set<String> _dismissedAlertIds = <String>{};
+  final Set<String> _reminderAlertIds = <String>{};
+  final Set<String> _registeredAlertIds = <String>{};
+  final Map<String, DateTime> _nextReminderAtByAlert = <String, DateTime>{};
   String? _facultyResumeName;
 
   void _openProfile() {
@@ -761,6 +971,7 @@ class _BasicShellState extends State<BasicShell> {
             onAccountChanged: (updatedAccount) {
               setState(() {
                 _account = updatedAccount;
+                _facultyOpportunities = buildFacultyOpportunities(_account);
               });
             },
           ),
@@ -788,9 +999,9 @@ class _BasicShellState extends State<BasicShell> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('QR Scanner'),
+        title: const Text('IA West Check In'),
         content: const Text(
-          'This demo opens QR check-in from the top-right action and keeps numeric code entry available too.',
+          'This demo opens IA West check-in from the top-right action and keeps both QR scanning and alphanumeric code entry available.',
         ),
         actions: [
           TextButton(
@@ -855,9 +1066,78 @@ class _BasicShellState extends State<BasicShell> {
     });
   }
 
+  List<SchoolEventAlert> _buildSchoolAlerts() {
+    final now = DateTime.now();
+    return universityFeedEvents.where((event) {
+      final haystack =
+          '${event.title} ${event.university} ${event.category} ${event.summary} ${event.networkingValue} ${event.sourceSite}';
+      return schoolMatchesOpportunity(_account, haystack) ||
+          _matchesAlertSubjects(_account, haystack);
+    }).map((event) {
+      return SchoolEventAlert(
+        id: '${event.university}|${event.title}|${event.sourceUrl}',
+        title: event.title,
+        summary: event.summary,
+        eventDate: event.eventDate,
+        sourceUrl: event.sourceUrl,
+        sourceSite: event.sourceSite,
+      );
+    }).where((alert) {
+      if (_dismissedAlertIds.contains(alert.id)) return false;
+      final nextReminderAt = _nextReminderAtByAlert[alert.id];
+      if (nextReminderAt == null) return true;
+      return !now.isBefore(nextReminderAt);
+    }).toList(growable: false);
+  }
+
+  void _dismissAlert(SchoolEventAlert alert) {
+    setState(() {
+      _dismissedAlertIds.add(alert.id);
+      _reminderAlertIds.remove(alert.id);
+      _nextReminderAtByAlert.remove(alert.id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Notifications for "${alert.title}" dismissed.'),
+      ),
+    );
+  }
+
+  void _remindAboutAlert(SchoolEventAlert alert) {
+    setState(() {
+      _reminderAlertIds.add(alert.id);
+      _dismissedAlertIds.remove(alert.id);
+      _nextReminderAtByAlert[alert.id] =
+          DateTime.now().add(_alertReminderCadence);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'We will remind you about "${alert.title}" again in two days.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _registerFromAlert(SchoolEventAlert alert) async {
+    setState(() {
+      _registeredAlertIds.add(alert.id);
+      _dismissedAlertIds.remove(alert.id);
+      _nextReminderAtByAlert.remove(alert.id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Opening ${alert.title} so you can learn more.'),
+      ),
+    );
+    await openInAppLink(alert.sourceUrl);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isFaculty = _account.isFaculty;
+    _facultyOpportunities = buildFacultyOpportunities(_account);
+    final schoolAlerts = _buildSchoolAlerts();
     final screen = switch (_selectedTab) {
       BasicTab.home => isFaculty
           ? FacultyHomeScreen(
@@ -868,6 +1148,12 @@ class _BasicShellState extends State<BasicShell> {
               onOpenOffice: _openFarm,
               onOpenVolunteer: _openVolunteer,
               onOpenProfile: _openProfile,
+              alerts: schoolAlerts,
+              reminderAlertIds: _reminderAlertIds,
+              registeredAlertIds: _registeredAlertIds,
+              onDismissAlert: _dismissAlert,
+              onRemindAlert: _remindAboutAlert,
+              onRegisterAlert: _registerFromAlert,
             )
           : HomeScreen(
               account: _account,
@@ -875,6 +1161,12 @@ class _BasicShellState extends State<BasicShell> {
               onCheckIn: _showCheckInDialog,
               onOpenFarm: _openFarm,
               onOpenProfile: _openProfile,
+              alerts: schoolAlerts,
+              reminderAlertIds: _reminderAlertIds,
+              registeredAlertIds: _registeredAlertIds,
+              onDismissAlert: _dismissAlert,
+              onRemindAlert: _remindAboutAlert,
+              onRegisterAlert: _registerFromAlert,
             ),
       BasicTab.farm => isFaculty
           ? OfficeScreen(state: widget.state)
@@ -895,16 +1187,23 @@ class _BasicShellState extends State<BasicShell> {
           account: _account,
           facultyRequests: _facultyRequests,
         ),
-      BasicTab.hub => const CampusHubScreen(),
+      BasicTab.hub => CampusHubScreen(
+          account: _account,
+          historySignals: widget.state.events
+              .map((event) => '${event.name} ${event.location}')
+              .toList(growable: false),
+        ),
     };
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const SizedBox.shrink(),
-        actions: isFaculty
-            ? null
-            : [
+      appBar: isFaculty
+          ? null
+          : AppBar(
+              automaticallyImplyLeading: false,
+              toolbarHeight: 48,
+              titleSpacing: 0,
+              title: const SizedBox.shrink(),
+              actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: Center(
@@ -936,7 +1235,7 @@ class _BasicShellState extends State<BasicShell> {
                             ),
                             SizedBox(width: 6),
                             Text(
-                              'Check In',
+                              'IA West Check In',
                               style: TextStyle(
                                 color: brandAccentDark,
                                 fontWeight: FontWeight.w800,
@@ -949,8 +1248,8 @@ class _BasicShellState extends State<BasicShell> {
                   ),
                 ),
               ],
-      ),
-      body: SafeArea(top: false, child: screen),
+            ),
+      body: SafeArea(top: isFaculty, child: screen),
       bottomNavigationBar: NavigationBar(
         selectedIndex: BasicTab.values.indexOf(_selectedTab),
         onDestinationSelected: (index) {
@@ -963,14 +1262,23 @@ class _BasicShellState extends State<BasicShell> {
           NavigationDestination(
               icon: Icon(isFaculty ? Icons.apartment_outlined : Icons.agriculture_outlined),
               label: isFaculty ? 'Office' : 'Farm'),
-          const NavigationDestination(
-              icon: Icon(Icons.volunteer_activism_outlined), label: 'Volunteer'),
+          NavigationDestination(
+              icon: const Icon(Icons.volunteer_activism_outlined),
+              label: isFaculty ? 'Volunteer' : 'Events'),
           const NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined), label: 'Badges'),
           const NavigationDestination(
-              icon: Icon(Icons.calendar_view_month_outlined), label: 'Hub'),
+              icon: Icon(Icons.calendar_view_month_outlined), label: 'IA Hub'),
         ],
       ),
     );
   }
+}
+
+bool _matchesAlertSubjects(AppAccount account, String haystack) {
+  final lowerHaystack = haystack.toLowerCase();
+  final tokens = {...account.interests, ...account.expertise}
+      .map((item) => item.toLowerCase())
+      .toList(growable: false);
+  return tokens.any((token) => lowerHaystack.contains(token));
 }

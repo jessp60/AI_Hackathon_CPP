@@ -20,59 +20,54 @@ class VolunteerScreen extends StatefulWidget {
 
 class _VolunteerScreenState extends State<VolunteerScreen> {
   final Set<int> _registeredEventIndexes = <int>{};
-  final Set<int> _volunteeredIndexes = <int>{};
   _VolunteerFeedView _selectedFeed = _VolunteerFeedView.forYou;
+  String? _selectedOpportunitySchool;
 
   @override
   Widget build(BuildContext context) {
+    final scopedAccount = _scopedAccount();
     final opportunities = _buildOpportunities();
+    final schoolOptions = availableSchoolNames();
     final registeredOpportunities = opportunities
         .where((opportunity) => opportunity.isRegistered)
         .toList(growable: false);
     final scoredRegistered = _scoreVolunteerMatches(
-      widget.account,
+      scopedAccount,
       registeredOpportunities,
     );
-    final scoredAll = _scoreVolunteerMatches(widget.account, opportunities);
+    final scoredAll = _scoreVolunteerMatches(scopedAccount, opportunities);
+    final hasRegisteredEvents = registeredOpportunities.isNotEmpty;
     final visibleMatches = _selectedFeed == _VolunteerFeedView.forYou
-        ? scoredRegistered
+        ? (hasRegisteredEvents ? scoredRegistered : scoredAll)
         : scoredAll;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
         Text(
-          'Volunteer',
+          'Events',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Students register for events first, then unlock tailored volunteer recommendations based on topic fit, role fit, geography, timing, and interest signals.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: appTextMuted,
-                height: 1.35,
-              ),
-        ),
-        const SizedBox(height: 16),
+        // Text(
+        //   'Students register for events first, then unlock tailored volunteer recommendations based on topic fit, role fit, geography, timing, and interest signals.',
+        //   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        //         color: appTextMuted,
+        //         height: 1.35,
+        //       ),
+        // ),
+        // const SizedBox(height: 16),
         _buildCalendarCard(context, opportunities),
         const SizedBox(height: 18),
         Row(
           children: [
             Expanded(
               child: _VolunteerSummaryCard(
-                label: 'Registered',
+                label: 'Registered Events',
                 value: '${_registeredEventIndexes.length}',
                 icon: Icons.assignment_turned_in_outlined,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _VolunteerSummaryCard(
-                label: 'Volunteer Signups',
-                value: '${_volunteeredIndexes.length}',
-                icon: Icons.volunteer_activism_outlined,
               ),
             ),
           ],
@@ -103,14 +98,14 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Volunteer Matches',
+          'Recommended Events',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
         ),
         const SizedBox(height: 8),
         Text(
-          'The For You feed uses a weighted prototype score tuned for student-event matching.',
+          'The For You feed uses a weighted prototype score tuned for student event matching.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: appTextMuted,
               ),
@@ -145,14 +140,33 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
         ),
         const SizedBox(height: 14),
         if (_selectedFeed == _VolunteerFeedView.forYou &&
-            registeredOpportunities.isEmpty)
-          _EmptyVolunteerState(account: widget.account)
-        else ...[
+            !hasRegisteredEvents)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: softBlush,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: mutedSurface),
+              ),
+              child: Text(
+                'No event registrations yet, so these matches are currently based on your selected interests and expertise. Once you register, the feed will blend in your event history too.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: appTextMuted,
+                      height: 1.35,
+                    ),
+              ),
+            ),
+          ),
+        ...[
           if (_selectedFeed == _VolunteerFeedView.forYou)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                'For You ranks registered events with this weighted score: Topic Relevance, Role Fit, Geographic Proximity, Calendar Fit, Historical Conversion Rate, and Student Interest Signal.',
+                hasRegisteredEvents
+                    ? 'For You ranks your registered events for ${scopedAccount.schoolName} with topic fit, role fit, geography, timing, past event history, and student interest signals.'
+                    : 'For You is currently ranking ${scopedAccount.schoolName} opportunities from your interests, expertise, and past event history until you register for one.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: appTextMuted,
                       height: 1.35,
@@ -164,26 +178,108 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
               padding: const EdgeInsets.only(bottom: 12),
               child: _VolunteerMatchCard(
                 match: match,
-                onToggleVolunteer: match.opportunity.isRegistered
-                    ? () => _toggleVolunteer(match.opportunity.eventIndex)
-                    : null,
+                onRegister: () => _registerForEvent(match.opportunity.eventIndex),
               ),
             ),
           ),
         ],
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: appSurface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x12000000),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Explore opportunities at another school',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'If you are visiting or helping another campus, switch the school scope here and we will show opportunities for that campus or school system.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: appTextMuted,
+                      height: 1.35,
+                    ),
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                initialValue:
+                    _selectedOpportunitySchool ?? widget.account.schoolName,
+                decoration: const InputDecoration(
+                  labelText: 'Opportunity school',
+                ),
+                items: schoolOptions
+                    .map(
+                      (school) => DropdownMenuItem<String>(
+                        value: school,
+                        child: Text(school),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _selectedOpportunitySchool = value;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   List<_VolunteerOpportunity> _buildOpportunities() {
+    final scopedAccount = _scopedAccount();
+    final scopedContacts = campusContacts
+        .where(
+          (contact) => schoolMatchesOpportunity(
+            scopedAccount,
+            '${contact.program} ${contact.hostUnit} ${contact.publicUrl} ${contact.audience}',
+          ),
+        )
+        .toList(growable: false);
+    final fallbackContacts = scopedContacts.isEmpty
+        ? _fallbackContactsForAccount(scopedAccount)
+        : scopedContacts;
+    final safeContacts = fallbackContacts.isEmpty
+        ? [_genericFallbackContact(scopedAccount)]
+        : fallbackContacts;
+    final scopedEvents = calendarEvents
+        .where(
+          (event) => schoolMatchesOpportunity(
+            scopedAccount,
+            '${event.region} ${event.nearbyUniversities} ${event.courseAlignment}',
+          ),
+        )
+        .toList(growable: false);
+    final fallbackEvents = scopedEvents.isEmpty
+        ? calendarEvents.take(4).toList(growable: false)
+        : scopedEvents;
+
     final opportunities = List.generate(
-      calendarEvents.length,
+      fallbackEvents.length,
       (index) => _VolunteerOpportunity(
-        eventIndex: index,
-        calendarEvent: calendarEvents[index],
-        contact: campusContacts[index % campusContacts.length],
-        isRegistered: _registeredEventIndexes.contains(index),
-        isVolunteering: _volunteeredIndexes.contains(index),
+        eventIndex: calendarEvents.indexOf(fallbackEvents[index]),
+        calendarEvent: fallbackEvents[index],
+        contact: safeContacts[index % safeContacts.length],
+        isRegistered:
+            _registeredEventIndexes.contains(calendarEvents.indexOf(fallbackEvents[index])),
+        isVolunteering: false,
       ),
     );
 
@@ -193,6 +289,18 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
       ).compareTo(DateTime.parse(right.calendarEvent.date)),
     );
     return opportunities;
+  }
+
+  AppAccount _scopedAccount() {
+    final selectedSchool = _selectedOpportunitySchool;
+    if (selectedSchool == null || selectedSchool == widget.account.schoolName) {
+      return widget.account;
+    }
+    return widget.account.copyWith(
+      schoolName: selectedSchool,
+      schoolOrganization: organizationForSchool(selectedSchool),
+      selectedSchools: [selectedSchool],
+    );
   }
 
   Widget _buildCalendarCard(
@@ -252,11 +360,7 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                       opportunity.isRegistered ? softBlush : const Color(0xFFF1F3F5),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: opportunity.isVolunteering
-                        ? brandAccent
-                        : opportunity.isRegistered
-                            ? softGold
-                            : mutedSurface,
+                    color: opportunity.isRegistered ? softGold : mutedSurface,
                   ),
                 ),
                 child: Column(
@@ -300,29 +404,6 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
     );
   }
 
-  void _toggleVolunteer(int eventIndex) {
-    final opportunity = calendarEvents[eventIndex];
-    final alreadyVolunteering = _volunteeredIndexes.contains(eventIndex);
-
-    setState(() {
-      if (alreadyVolunteering) {
-        _volunteeredIndexes.remove(eventIndex);
-      } else {
-        _volunteeredIndexes.add(eventIndex);
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          alreadyVolunteering
-              ? 'Volunteer signup removed for ${opportunity.region}.'
-              : 'You signed up to volunteer at ${opportunity.region}.',
-        ),
-      ),
-    );
-  }
-
   void _registerForEvent(int eventIndex) {
     final opportunity = calendarEvents[eventIndex];
     final alreadyRegistered = _registeredEventIndexes.contains(eventIndex);
@@ -330,7 +411,6 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
     setState(() {
       if (alreadyRegistered) {
         _registeredEventIndexes.remove(eventIndex);
-        _volunteeredIndexes.remove(eventIndex);
       } else {
         _registeredEventIndexes.add(eventIndex);
       }
@@ -341,11 +421,68 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
         content: Text(
           alreadyRegistered
               ? 'Registration removed for ${opportunity.region}.'
-              : 'You registered for ${opportunity.region}. Volunteer matching is now available.',
+              : 'You registered for ${opportunity.region}. Event matching is now updated.',
         ),
       ),
     );
   }
+}
+
+List<CampusContact> _fallbackContactsForAccount(AppAccount account) {
+  return switch (account.schoolOrganization) {
+    SchoolOrganization.uc => const [
+        CampusContact(
+          program: 'UC Networking and Mentorship Session',
+          category: 'Career panel',
+          recurrence: 'Recurring',
+          hostUnit: 'University of California system',
+          volunteerRoles: 'Mentor; Panelist; Guest speaker',
+          audience: 'UC students',
+          publicUrl: 'https://admission.universityofcalifornia.edu/',
+          contactName: 'UC campus engagement teams',
+          contactInfo: 'See campus event page',
+        ),
+        CampusContact(
+          program: 'UC Research Symposium Connection Hour',
+          category: 'Research symposium',
+          recurrence: 'Annual',
+          hostUnit: 'University of California system',
+          volunteerRoles: 'Guest speaker; Reviewer',
+          audience: 'UC researchers and students',
+          publicUrl: 'https://admission.universityofcalifornia.edu/',
+          contactName: 'UC research event teams',
+          contactInfo: 'See campus event page',
+        ),
+      ],
+    SchoolOrganization.privateSchool => [
+        CampusContact(
+          program: '${account.schoolName} Career Connections Night',
+          category: 'Career panel',
+          recurrence: 'Recurring',
+          hostUnit: account.schoolName,
+          volunteerRoles: 'Mentor; Panelist',
+          audience: 'Students and alumni',
+          publicUrl: 'https://www.aiccu.edu/',
+          contactName: 'Campus event office',
+          contactInfo: 'See campus event page',
+        ),
+      ],
+    _ => const [],
+  };
+}
+
+CampusContact _genericFallbackContact(AppAccount account) {
+  return CampusContact(
+    program: '${account.schoolName} Opportunity Board',
+    category: 'Career and networking event',
+    recurrence: 'Rolling',
+    hostUnit: account.schoolName,
+    volunteerRoles: 'Mentor; Guest speaker; Panelist',
+    audience: 'Students, alumni, and campus partners',
+    publicUrl: 'https://www.insightsassociation.org/Membership/Chapters/West',
+    contactName: 'Campus opportunity coordinator',
+    contactInfo: 'See the linked school or IA West page for current details.',
+  );
 }
 
 class _VolunteerSummaryCard extends StatelessWidget {
@@ -588,11 +725,11 @@ class _EmptyVolunteerState extends StatelessWidget {
 class _VolunteerMatchCard extends StatelessWidget {
   const _VolunteerMatchCard({
     required this.match,
-    required this.onToggleVolunteer,
+    required this.onRegister,
   });
 
   final _VolunteerMatch match;
-  final VoidCallback? onToggleVolunteer;
+  final VoidCallback onRegister;
 
   @override
   Widget build(BuildContext context) {
@@ -643,7 +780,7 @@ class _VolunteerMatchCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            _roleSummary(opportunity.contact.volunteerRoles),
+            'Event fit for your profile and school selection.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: appText,
                   height: 1.35,
@@ -664,7 +801,7 @@ class _VolunteerMatchCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Volunteer roles: ${opportunity.contact.volunteerRoles}',
+            'Suggested roles at this event: ${opportunity.contact.volunteerRoles}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: appTextMuted,
                   height: 1.35,
@@ -680,14 +817,14 @@ class _VolunteerMatchCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           FilledButton.icon(
-            onPressed: onToggleVolunteer,
+            onPressed: onRegister,
             icon: Icon(
-              opportunity.isVolunteering
+              opportunity.isRegistered
                   ? Icons.check_circle_outline
-                  : Icons.volunteer_activism_outlined,
+                  : Icons.app_registration_outlined,
             ),
             label: Text(
-              opportunity.isVolunteering ? 'Signed Up to Volunteer' : 'Volunteer',
+              opportunity.isRegistered ? 'Registered for Event' : 'Register for Event',
             ),
           ),
         ],
@@ -890,7 +1027,8 @@ List<_VolunteerMatch> _scoreVolunteerMatches(
 
 double _topicRelevance(AppAccount account, _VolunteerOpportunity opportunity) {
   final volunteerText =
-      '${account.memberLabel} ${account.fullName} ${account.email}';
+      '${account.memberLabel} ${account.fullName} ${account.email} '
+      '${account.interests.join(' ')} ${account.expertise.join(' ')}';
   final opportunityText =
       '${opportunity.contact.category} ${opportunity.contact.program} '
       '${opportunity.calendarEvent.courseAlignment} '

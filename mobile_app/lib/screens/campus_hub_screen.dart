@@ -1,104 +1,303 @@
-import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+
+import '../models/app_models.dart';
 import '../models/campus_data.dart';
 import '../theme_constants.dart';
+import '../utils/in_app_link_opener.dart';
+
+const _iaWestMembershipUrl =
+    'https://www.insightsassociation.org/Membership/Chapters/West';
 
 class CampusHubScreen extends StatelessWidget {
-  const CampusHubScreen({super.key});
+  const CampusHubScreen({
+    super.key,
+    required this.account,
+    this.historySignals = const [],
+  });
+
+  final AppAccount account;
+  final List<String> historySignals;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final filteredEvents = _filteredCalendarEvents(account, historySignals);
+    final filteredSpeakers = _filteredSpeakerProfiles(account);
+    final filteredContacts = _filteredCampusContacts(account);
+    final filteredSchedule = _filteredCourseSchedule(account);
+    final filteredFeeds = _filteredUniversityFeeds(account);
 
     return DefaultTabController(
       length: 5,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Campus Hub',
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Real event windows, speaker profiles, published contact info, the CPP course schedule, and reviewable university feed imports.',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: appTextMuted,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
+      child: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _SummaryCard(
-                        label: 'Events',
-                        value: '${calendarEvents.length}',
-                        icon: Icons.event_outlined,
+                    Text(
+                      'IA Hub',
+                      style: textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _SummaryCard(
-                        label: 'Speakers',
-                        value: '${speakerProfiles.length}',
-                        icon: Icons.record_voice_over_outlined,
-                      ),
+                    const SizedBox(height: 8),
+                  //   Text(
+                  // 'An IA-specific hub of events, speakers, contacts, schedules, and approved public feeds matched to your school, subjects, and engagement history.',
+                  //     style: textTheme.bodyLarge?.copyWith(
+                  //       color: appTextMuted,
+                  //       height: 1.35,
+                  //     ),
+                  //   ),
+                    const SizedBox(height: 14),
+                    _PersonalizedHubCard(
+                      account: account,
+                      filteredEvents: filteredEvents.length,
+                      filteredSpeakers: filteredSpeakers.length,
+                      filteredContacts: filteredContacts.length,
+                      filteredFeeds: filteredFeeds.length,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _SummaryCard(
-                        label: 'Contacts',
-                        value: '${campusContacts.length}',
-                        icon: Icons.contact_mail_outlined,
-                      ),
+                    if (account.isStudent) ...[
+                      const SizedBox(height: 14),
+                      _IaMembershipCard(account: account),
+                    ],
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SummaryCard(
+                            label: 'Events',
+                            value: '${filteredEvents.length}',
+                            icon: Icons.event_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _SummaryCard(
+                            label: 'Speakers',
+                            value: '${filteredSpeakers.length}',
+                            icon: Icons.record_voice_over_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _SummaryCard(
+                            label: 'Contacts',
+                            value: '${filteredContacts.length}',
+                            icon: Icons.contact_mail_outlined,
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
                   ],
                 ),
-              ],
+              ),
             ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _HubTabBarDelegate(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: appSurface,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: mutedSurface),
+                    ),
+                    child: const TabBar(
+                      isScrollable: true,
+                      indicatorColor: brandAccent,
+                      labelColor: brandAccentDark,
+                      unselectedLabelColor: appTextMuted,
+                      tabs: [
+                        Tab(text: 'Events'),
+                        Tab(text: 'Speakers'),
+                        Tab(text: 'Contacts'),
+                        Tab(text: 'Schedule'),
+                        Tab(text: 'Feeds'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          children: [
+            _CalendarTab(events: filteredEvents),
+            _SpeakersTab(speakers: filteredSpeakers),
+            _ContactsTab(contacts: filteredContacts),
+            _ScheduleTab(scheduleItems: filteredSchedule),
+            _FeedImportsTab(feedItems: filteredFeeds, account: account),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HubTabBarDelegate extends SliverPersistentHeaderDelegate {
+  const _HubTabBarDelegate({
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  double get minExtent => 62;
+
+  @override
+  double get maxExtent => 62;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      color: appBackground,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _HubTabBarDelegate oldDelegate) {
+    return oldDelegate.child != child;
+  }
+}
+
+class _PersonalizedHubCard extends StatelessWidget {
+  const _PersonalizedHubCard({
+    required this.account,
+    required this.filteredEvents,
+    required this.filteredSpeakers,
+    required this.filteredContacts,
+    required this.filteredFeeds,
+  });
+
+  final AppAccount account;
+  final int filteredEvents;
+  final int filteredSpeakers;
+  final int filteredContacts;
+  final int filteredFeeds;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appSurface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: appSurface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: mutedSurface),
-              ),
-              child: const TabBar(
-                isScrollable: true,
-                indicatorColor: brandAccent,
-                labelColor: brandAccentDark,
-                unselectedLabelColor: appTextMuted,
-                tabs: [
-                  Tab(text: 'Events'),
-                  Tab(text: 'Speakers'),
-                  Tab(text: 'Contacts'),
-                  Tab(text: 'Schedule'),
-                  Tab(text: 'Feeds'),
-                ],
-              ),
-            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Customized for ${account.schoolName}',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Showing content matched to your school system plus your selected interests and expertise: ${account.interests.join(', ')}.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: appTextMuted,
+                  height: 1.35,
+                ),
           ),
           const SizedBox(height: 12),
-          const Expanded(
-            child: TabBarView(
-              children: [
-                _CalendarTab(),
-                _SpeakersTab(),
-                _ContactsTab(),
-                _ScheduleTab(),
-                _FeedImportsTab(),
-              ],
-            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _FeedChip(
+                icon: Icons.event_note_outlined,
+                label: '$filteredEvents matched events',
+              ),
+              _FeedChip(
+                icon: Icons.people_outline,
+                label: '$filteredSpeakers relevant speakers',
+              ),
+              _FeedChip(
+                icon: Icons.contact_phone_outlined,
+                label: '$filteredContacts outreach contacts',
+              ),
+              _FeedChip(
+                icon: Icons.public_outlined,
+                label: '$filteredFeeds public feeds',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IaMembershipCard extends StatelessWidget {
+  const _IaMembershipCard({
+    required this.account,
+  });
+
+  final AppAccount account;
+
+  Future<void> _openMembershipPage() async {
+    await openInAppLink(_iaWestMembershipUrl);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appSurface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Become an IA West Member',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ready to go beyond event attendance at ${account.schoolName}? Open the official IA West page to explore chapter involvement and membership pathways.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: appTextMuted,
+                  height: 1.35,
+                ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: _openMembershipPage,
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Become an IA Member'),
           ),
         ],
       ),
@@ -156,16 +355,20 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _CalendarTab extends StatelessWidget {
-  const _CalendarTab();
+  const _CalendarTab({
+    required this.events,
+  });
+
+  final List<CalendarEvent> events;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: calendarEvents.length,
+      itemCount: events.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final event = calendarEvents[index];
+        final event = events[index];
         return _HubCard(
           title: '${event.region} • ${event.date}',
           subtitle: event.lectureWindow,
@@ -180,16 +383,20 @@ class _CalendarTab extends StatelessWidget {
 }
 
 class _SpeakersTab extends StatelessWidget {
-  const _SpeakersTab();
+  const _SpeakersTab({
+    required this.speakers,
+  });
+
+  final List<SpeakerProfile> speakers;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: speakerProfiles.length,
+      itemCount: speakers.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final speaker = speakerProfiles[index];
+        final speaker = speakers[index];
         return _HubCard(
           title: speaker.name,
           subtitle: '${speaker.boardRole} • ${speaker.company}',
@@ -205,16 +412,20 @@ class _SpeakersTab extends StatelessWidget {
 }
 
 class _ContactsTab extends StatelessWidget {
-  const _ContactsTab();
+  const _ContactsTab({
+    required this.contacts,
+  });
+
+  final List<CampusContact> contacts;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: campusContacts.length,
+      itemCount: contacts.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final contact = campusContacts[index];
+        final contact = contacts[index];
         return _HubCard(
           title: contact.program,
           subtitle: '${contact.category} • ${contact.recurrence}',
@@ -233,16 +444,20 @@ class _ContactsTab extends StatelessWidget {
 }
 
 class _ScheduleTab extends StatelessWidget {
-  const _ScheduleTab();
+  const _ScheduleTab({
+    required this.scheduleItems,
+  });
+
+  final List<CourseScheduleItem> scheduleItems;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: courseSchedule.length,
+      itemCount: scheduleItems.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final item = courseSchedule[index];
+        final item = scheduleItems[index];
         return _HubCard(
           title: '${item.course}-${item.section} • ${item.title}',
           subtitle: '${item.days} • ${item.startTime}–${item.endTime}',
@@ -259,20 +474,26 @@ class _ScheduleTab extends StatelessWidget {
 }
 
 class _FeedImportsTab extends StatelessWidget {
-  const _FeedImportsTab();
+  const _FeedImportsTab({
+    required this.feedItems,
+    required this.account,
+  });
+
+  final List<UniversityFeedEvent> feedItems;
+  final AppAccount account;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: universityFeedEvents.length + 1,
+      itemCount: feedItems.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return const _HubCard(
+          return _HubCard(
             title: 'Approved Public Event Feeds',
-            subtitle: 'Ethical sourcing for student networking opportunities',
-            children: [
+            subtitle: 'Ethical sourcing for ${account.schoolName} opportunities',
+            children: const [
               _InfoLine(
                 label: 'Policy',
                 value:
@@ -310,7 +531,7 @@ class _FeedImportsTab extends StatelessWidget {
           );
         }
 
-        final item = universityFeedEvents[index - 1];
+        final item = feedItems[index - 1];
         return _HubCard(
           title: item.title,
           subtitle: '${item.university} • ${item.eventDate}',
@@ -449,9 +670,7 @@ class _InfoLine extends StatelessWidget {
   bool get _isUrl => value.startsWith('http://') || value.startsWith('https://');
 
   Future<void> _openUrl() async {
-    final uri = Uri.tryParse(value);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.platformDefault);
+    await openInAppLink(value);
   }
 
   @override
@@ -491,4 +710,146 @@ class _InfoLine extends StatelessWidget {
       ),
     );
   }
+}
+
+List<CalendarEvent> _filteredCalendarEvents(
+  AppAccount account,
+  List<String> historySignals,
+) {
+  final filtered = calendarEvents.where((event) {
+    final haystack =
+        '${event.region} ${event.nearbyUniversities} ${event.courseAlignment}';
+    return schoolMatchesOpportunity(account, haystack) ||
+        _matchesSubjects(account, haystack);
+  }).toList(growable: false);
+  final candidates =
+      filtered.isEmpty ? calendarEvents.take(4).toList(growable: false) : filtered;
+  candidates.sort(
+    (left, right) => _eventRelevanceScore(
+      account,
+      right,
+      historySignals,
+    ).compareTo(
+      _eventRelevanceScore(account, left, historySignals),
+    ),
+  );
+  return candidates;
+}
+
+List<SpeakerProfile> _filteredSpeakerProfiles(AppAccount account) {
+  final filtered = speakerProfiles.where((speaker) {
+    final haystack =
+        '${speaker.name} ${speaker.metroRegion} ${speaker.company} ${speaker.title} ${speaker.expertiseTags}';
+    return schoolMatchesOpportunity(account, haystack) ||
+        _matchesSubjects(account, haystack);
+  }).toList(growable: false);
+  return filtered.isEmpty ? speakerProfiles.take(4).toList(growable: false) : filtered;
+}
+
+List<CampusContact> _filteredCampusContacts(AppAccount account) {
+  final filtered = campusContacts.where((contact) {
+    final haystack =
+        '${contact.program} ${contact.category} ${contact.hostUnit} ${contact.volunteerRoles} ${contact.audience} ${contact.publicUrl}';
+    return schoolMatchesOpportunity(account, haystack) ||
+        _matchesSubjects(account, haystack);
+  }).toList(growable: false);
+  return filtered.isEmpty ? campusContacts.take(4).toList(growable: false) : filtered;
+}
+
+List<CourseScheduleItem> _filteredCourseSchedule(AppAccount account) {
+  final filtered = courseSchedule.where((item) {
+    final haystack =
+        '${item.instructor} ${item.course} ${item.title} ${item.guestLectureFit}';
+    return schoolMatchesOpportunity(account, haystack) ||
+        _matchesSubjects(account, haystack);
+  }).toList(growable: false);
+  return filtered.isEmpty ? courseSchedule.take(4).toList(growable: false) : filtered;
+}
+
+List<UniversityFeedEvent> _filteredUniversityFeeds(AppAccount account) {
+  final filtered = universityFeedEvents.where((item) {
+    final haystack =
+        '${item.title} ${item.university} ${item.category} ${item.summary} ${item.networkingValue} ${item.sourceUrl}';
+    return schoolMatchesOpportunity(account, haystack) ||
+        _matchesSubjects(account, haystack);
+  }).toList(growable: false);
+  return filtered.isEmpty
+      ? universityFeedEvents.take(4).toList(growable: false)
+      : filtered;
+}
+
+bool _matchesSubjects(AppAccount account, String haystack) {
+  final lowerHaystack = haystack.toLowerCase();
+  final tokens = {...account.interests, ...account.expertise}
+      .map((item) => item.toLowerCase())
+      .toList(growable: false);
+  return tokens.any((token) => lowerHaystack.contains(token));
+}
+
+double _eventRelevanceScore(
+  AppAccount account,
+  CalendarEvent event,
+  List<String> historySignals,
+) {
+  final haystack =
+      '${event.region} ${event.nearbyUniversities} ${event.lectureWindow} ${event.courseAlignment}';
+  final interestText = account.interests.join(' ');
+  final expertiseText = account.expertise.join(' ');
+  final historyText = historySignals.join(' ');
+  final schoolBoost = schoolMatchesOpportunity(account, haystack) ? 0.22 : 0.0;
+
+  return (_cosineSimilarity(
+            _tokenVector(interestText),
+            _tokenVector(haystack),
+          ) *
+          0.4) +
+      (_cosineSimilarity(
+            _tokenVector(expertiseText),
+            _tokenVector(haystack),
+          ) *
+          0.35) +
+      (_cosineSimilarity(
+            _tokenVector(historyText),
+            _tokenVector(haystack),
+          ) *
+          0.25) +
+      schoolBoost;
+}
+
+Map<String, double> _tokenVector(String value) {
+  final tokens = RegExp(r'[a-zA-Z0-9]+')
+      .allMatches(value.toLowerCase())
+      .map((match) => match.group(0)!)
+      .toList(growable: false);
+  final counts = <String, double>{};
+  for (final token in tokens) {
+    counts.update(token, (current) => current + 1, ifAbsent: () => 1);
+  }
+  return counts;
+}
+
+double _cosineSimilarity(
+  Map<String, double> left,
+  Map<String, double> right,
+) {
+  if (left.isEmpty || right.isEmpty) return 0;
+
+  var dotProduct = 0.0;
+  var leftMagnitude = 0.0;
+  var rightMagnitude = 0.0;
+
+  for (final entry in left.entries) {
+    leftMagnitude += entry.value * entry.value;
+    final rightValue = right[entry.key];
+    if (rightValue != null) {
+      dotProduct += entry.value * rightValue;
+    }
+  }
+
+  for (final value in right.values) {
+    rightMagnitude += value * value;
+  }
+
+  if (leftMagnitude == 0 || rightMagnitude == 0) return 0;
+  return dotProduct / (math.sqrt(leftMagnitude) * math.sqrt(rightMagnitude));
 }
